@@ -1,22 +1,25 @@
 using Engine = OpenCdsi.VaxEngine.Core.Models;
 using OpenCdsi.VaxEngine.Core.Evaluation;
 using OpenCdsi.VaxEngine.Core.Pipeline;
-using OpenCdsi.VaxEngine.Core.ReferenceData;
 using OpenCdsi.VaxEngine.Mobile.Models;
 
 namespace OpenCdsi.VaxEngine.Mobile.Services;
 
 // The real IForecastEngineAdapter, calling OpenCdsi.VaxEngine.Core's actual forecasting pipeline.
-// Reference data is ~2.6MB of CDC XML across 30 antigen files - loaded once (via
-// ReferenceDataProvisioner) and cached for the app's lifetime, not reloaded per forecast.
+// Reference data comes from the shared ReferenceDataStore (loaded once at app startup), not
+// reloaded per forecast.
 public class VaxEngineForecastService : IForecastEngineAdapter
 {
-    private readonly Lazy<Task<ReferenceDataRepository>> _referenceData =
-        new(() => ReferenceDataProvisioner.LoadAsync());
+    private readonly ReferenceDataStore _referenceData;
 
-    public async Task<IReadOnlyList<ForecastEntry>> ForecastAsync(Patient patient, CancellationToken ct = default)
+    public VaxEngineForecastService(ReferenceDataStore referenceData)
     {
-        var referenceData = await _referenceData.Value;
+        _referenceData = referenceData;
+    }
+
+    public Task<IReadOnlyList<ForecastEntry>> ForecastAsync(Patient patient, CancellationToken ct = default)
+    {
+        var referenceData = _referenceData.Repository;
         var assessmentDate = DateOnly.FromDateTime(DateTime.Today);
 
         var enginePatient = new Engine.Patient
@@ -45,7 +48,9 @@ public class VaxEngineForecastService : IForecastEngineAdapter
             referenceData.ContraindicationsByAntigen,
             assessmentDate);
 
-        return results.Select(r => ToForecastEntry(r, assessmentDate)).ToList();
+        IReadOnlyList<ForecastEntry> entries =
+            results.Select(r => ToForecastEntry(r, assessmentDate)).ToList();
+        return Task.FromResult(entries);
     }
 
     private static Engine.Gender ToEngineGender(Gender gender) => gender switch
@@ -62,6 +67,18 @@ public class VaxEngineForecastService : IForecastEngineAdapter
             case PatientSeriesStatus.Complete:
                 return ForecastStatus.Complete;
 
+            case PatientSeriesStatus.Immune:
+                return ForecastStatus.Immune;
+
+            case PatientSeriesStatus.Contraindicated:
+                return ForecastStatus.Contraindicated;
+
+            case PatientSeriesStatus.AgedOut:
+                return ForecastStatus.AgedOut;
+
+            case PatientSeriesStatus.NotRecommended:
+                return ForecastStatus.NotRecommended;
+
             case PatientSeriesStatus.NotComplete:
                 // "Due now" once the recommended date has arrived (or there's no recommended
                 // date to wait on); "not yet due" while still ahead of it. The engine doesn't
@@ -73,11 +90,8 @@ public class VaxEngineForecastService : IForecastEngineAdapter
                     : ForecastStatus.NotYetDue;
 
             default:
-                // NotRecommended, Immune, Contraindicated, AgedOut - four clinically distinct
-                // reasons the engine keeps separate, folded into this app's one "don't give this"
-                // status because that's all its UI distinguishes today. Reasons (below) still
-                // carries the real distinction through to ReasonText.
-                return ForecastStatus.NotRecommended;
+                throw new ArgumentOutOfRangeException(
+                    nameof(result), result.Status, "Unrecognized PatientSeriesStatus.");
         }
     }
 

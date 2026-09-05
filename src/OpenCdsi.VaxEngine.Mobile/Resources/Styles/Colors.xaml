@@ -56,6 +56,13 @@
     <Color x:Key="StatusComplete">#3B6D11</Color>
     <Color x:Key="StatusNeutral">#5F5E5A</Color>
 
+    <!-- Immune/Contraindicated/AgedOut are distinct "don't give this" reasons the engine itself
+         keeps separate (PatientSeriesStatus) — deliberately not sharing StatusWarning, so the
+         badge color tells them apart the same way the underlying data does. -->
+    <Color x:Key="StatusImmune">#2E7D8C</Color>
+    <Color x:Key="StatusContraindicated">#B3261E</Color>
+    <Color x:Key="StatusAgedOut">#8C6239</Color>
+
     <!-- Neutrals, not derivable from the logo. -->
     <Color x:Key="TextPrimary">#1A1A1A</Color>
     <Color x:Key="TextSecondary">#5F5E5A</Color>

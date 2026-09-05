@@ -15,6 +15,9 @@ public class ForecastStatusToColorConverter : IValueConverter
             ForecastStatus.NotRecommended => "StatusWarning",
             ForecastStatus.Complete => "StatusComplete",
             ForecastStatus.NotYetDue => "StatusNeutral",
+            ForecastStatus.Immune => "StatusImmune",
+            ForecastStatus.Contraindicated => "StatusContraindicated",
+            ForecastStatus.AgedOut => "StatusAgedOut",
             _ => "StatusNeutral"
         };
 
@@ -34,6 +37,9 @@ public class ForecastStatusToLabelConverter : IValueConverter
             ForecastStatus.NotRecommended => "Not recommended",
             ForecastStatus.Complete => "Complete",
             ForecastStatus.NotYetDue => "Not yet due",
+            ForecastStatus.Immune => "Immune",
+            ForecastStatus.Contraindicated => "Contraindicated",
+            ForecastStatus.AgedOut => "Aged out",
             _ => string.Empty
         };
 

@@ -34,6 +34,7 @@ public static class MauiProgram
 		builder.Services.AddTransient<PatientDetailViewModel>();
 		builder.Services.AddTransient<PatientDetailPage>();
 
+		builder.Services.AddSingleton<ReferenceDataStore>();
 		builder.Services.AddSingleton<CvxLookupService>();
 		builder.Services.AddTransient<AddDoseViewModel>();
 		builder.Services.AddTransient<AddDosePage>();
@@ -59,6 +60,11 @@ public static class MauiProgram
 
 		using var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext();
 		db.Database.EnsureCreated();
+
+		// Loaded once, synchronously, before the first page appears — CvxLookupService and
+		// VaxEngineForecastService both assume ReferenceDataStore.Repository is already
+		// populated by the time DI resolves them.
+		app.Services.GetRequiredService<ReferenceDataStore>().LoadAsync().GetAwaiter().GetResult();
 
 		return app;
 	}
