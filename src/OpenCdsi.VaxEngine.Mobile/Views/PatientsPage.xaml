@@ -13,15 +13,21 @@
         <ToolbarItem Text="Add patient" Command="{Binding AddPatientCommand}" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,*" RowSpacing="0">
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="0">
 
-        <SearchBar Grid.Row="0"
+        <HorizontalStackLayout Grid.Row="0" Spacing="10" Padding="16,12,16,4">
+            <Image Source="opencdsi_logo.svg" HeightRequest="32" WidthRequest="32" />
+            <Label Text="VaxEngine" FontSize="20" FontAttributes="Bold"
+                   TextColor="{StaticResource BrandPrimary}" VerticalOptions="Center" />
+        </HorizontalStackLayout>
+
+        <SearchBar Grid.Row="1"
                    Placeholder="Search patients"
                    Text="{Binding SearchText}"
                    Margin="12,8"
                    BackgroundColor="{StaticResource SurfaceCard}" />
 
-        <CollectionView Grid.Row="1"
+        <CollectionView Grid.Row="2"
                          ItemsSource="{Binding Patients}"
                          SelectionMode="Single"
                          SelectionChangedCommand="{Binding OpenPatientCommand}"

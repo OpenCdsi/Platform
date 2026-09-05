@@ -42,12 +42,13 @@
     <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
     <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
 
-    <!-- Brand palette, extracted directly from the OpenCdsi logo.
+    <!-- Brand palette, matching the three colors in the actual OpenCdsi logo mark
+         (Resources/Images/opencdsi_logo.svg, also the app icon/splash source) exactly.
          Use these for chrome and identity — app bar, active nav, primary
          button — not for status/semantic meaning. -->
-    <Color x:Key="BrandPrimary">#7D00CA</Color>
-    <Color x:Key="BrandSecondary">#00DD69</Color>
-    <Color x:Key="BrandAccent">#FF415A</Color>
+    <Color x:Key="BrandPrimary">#911EB4</Color>
+    <Color x:Key="BrandSecondary">#4363D8</Color>
+    <Color x:Key="BrandAccent">#F58231</Color>
 
     <!-- Semantic status colors — deliberately distinct from BrandAccent so a
          "not recommended" dose warning never blends into brand styling. -->
