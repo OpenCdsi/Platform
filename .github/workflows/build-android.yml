@@ -1,0 +1,56 @@
+# Builds the app for Android on every push/PR touching src/.
+#
+# Needs the real Android SDK (platform android.jar, build-tools), which .NET's workload install
+# fetches from Google's package repository at build time - a GitHub-hosted runner has
+# unrestricted internet for that, unlike some sandboxed/agent dev environments.
+#
+# Also needs read access to this org's GitHub Packages feed to restore OpenCdsi.VaxEngine (see
+# nuget.config) - the built-in GITHUB_TOKEN covers that for a public package in the same org.
+
+name: Build VaxEngine App (Android)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install .NET MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Restore
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet restore src/OpenCdsi.VaxEngine.Mobile/OpenCdsi.VaxEngine.Mobile.csproj
+
+      - name: Build (Release, Android)
+        run: >
+          dotnet build src/OpenCdsi.VaxEngine.Mobile/OpenCdsi.VaxEngine.Mobile.csproj
+          -c Release
+          -f net10.0-android
+          --no-restore
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaxengine-mobile-android
+          path: src/OpenCdsi.VaxEngine.Mobile/bin/Release/net10.0-android/**/*-Signed.apk
+          if-no-files-found: error
