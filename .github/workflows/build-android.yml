@@ -4,7 +4,7 @@
 # fetches from Google's package repository at build time - a GitHub-hosted runner has
 # unrestricted internet for that, unlike some sandboxed/agent dev environments.
 #
-# Also needs read access to this org's GitHub Packages feed to restore OpenCdsi.VaxEngine. The
+# Also needs read access to this org's GitHub Packages feed to restore OpenCdsi.VaxEngine.Core. The
 # built-in GITHUB_TOKEN only covers packages published from the SAME repo the workflow runs in;
 # OpenCdsi.VaxEngine is published from OpenCdsi/VaxEngine, a different repo, so restoring it here
 # needs a classic PAT with the read:packages scope, stored as the NUGET_READ_PAT repo secret.

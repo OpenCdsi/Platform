@@ -14,7 +14,7 @@ src/OpenCdsi.VaxEngine.Mobile/   .NET MAUI app (net10.0-android)
 Currently ships one screen — the patients roster (list, search, navigate to
 a patient) — backed by a local SQLite database via EF Core. Add-patient,
 patient-detail, and quick-forecast screens (the ones that will actually call
-into `OpenCdsi.VaxEngine`) are not built yet.
+into `OpenCdsi.VaxEngine.Core`) are not built yet.
 
 ## Building
 
