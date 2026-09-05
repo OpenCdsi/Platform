@@ -17,7 +17,7 @@
 
         <HorizontalStackLayout Grid.Row="0" Spacing="10" Padding="16,12,16,4">
             <Image Source="opencdsi_logo.svg" HeightRequest="32" WidthRequest="32" />
-            <Label Text="VaxEngine" FontSize="20" FontAttributes="Bold"
+            <Label Text="VaxEngine.Mobile" FontSize="20" FontAttributes="Bold"
                    TextColor="{StaticResource BrandPrimary}" VerticalOptions="Center" />
         </HorizontalStackLayout>
 
