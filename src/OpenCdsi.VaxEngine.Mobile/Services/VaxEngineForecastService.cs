@@ -17,9 +17,12 @@ public class VaxEngineForecastService : IForecastEngineAdapter
         _referenceData = referenceData;
     }
 
-    public Task<IReadOnlyList<ForecastEntry>> ForecastAsync(Patient patient, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ForecastEntry>> ForecastAsync(Patient patient, CancellationToken ct = default)
     {
-        var referenceData = _referenceData.Repository;
+        // Awaits the shared background load (kicked off at startup in MauiProgram.cs) instead of
+        // assuming it's already finished - by the time a user reaches this screen it almost
+        // certainly is, but this stays correct even if they get here unusually fast.
+        var referenceData = await _referenceData.LoadAsync();
         var assessmentDate = DateOnly.FromDateTime(DateTime.Today);
 
         var enginePatient = new Engine.Patient
@@ -48,9 +51,7 @@ public class VaxEngineForecastService : IForecastEngineAdapter
             referenceData.ContraindicationsByAntigen,
             assessmentDate);
 
-        IReadOnlyList<ForecastEntry> entries =
-            results.Select(r => ToForecastEntry(r, assessmentDate)).ToList();
-        return Task.FromResult(entries);
+        return results.Select(r => ToForecastEntry(r, assessmentDate)).ToList();
     }
 
     private static Engine.Gender ToEngineGender(Gender gender) => gender switch

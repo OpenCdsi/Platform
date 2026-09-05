@@ -2,20 +2,17 @@ using OpenCdsi.VaxEngine.Core.ReferenceData;
 
 namespace OpenCdsi.VaxEngine.Mobile.Services;
 
-// Loads OpenCdsi.VaxEngine.Core's reference data once, at app startup (see MauiProgram.cs), and
-// holds it for the app's lifetime. VaxEngineForecastService and CvxLookupService both need the
-// same in-memory catalog - loading it once here instead of once each avoids parsing the same
-// ~2.6MB of CDC XML twice.
+// Loads OpenCdsi.VaxEngine.Core's reference data once and holds it for the app's lifetime.
+// VaxEngineForecastService and CvxLookupService both need the same in-memory catalog - loading it
+// once here instead of once each avoids parsing the same ~2.6MB of CDC XML twice.
+//
+// LoadAsync() is safe to call from multiple places (MauiProgram.cs kicks it off in the background
+// at startup; ForecastAsync/CvxLookupService also call it, in case they're reached before that
+// background load finishes) - the Lazy<Task<>> means every caller shares the same in-flight or
+// completed load rather than triggering a second one.
 public class ReferenceDataStore
 {
-    private ReferenceDataRepository? _repository;
+    private readonly Lazy<Task<ReferenceDataRepository>> _load = new(() => ReferenceDataProvisioner.LoadAsync());
 
-    public ReferenceDataRepository Repository =>
-        _repository ?? throw new InvalidOperationException(
-            $"{nameof(ReferenceDataStore)}.{nameof(LoadAsync)} must complete before this is used " +
-            "(MauiProgram.cs loads it synchronously during startup, before any page can resolve " +
-            "a service that depends on it).");
-
-    public async Task LoadAsync(CancellationToken ct = default)
-        => _repository = await ReferenceDataProvisioner.LoadAsync(ct);
+    public Task<ReferenceDataRepository> LoadAsync() => _load.Value;
 }

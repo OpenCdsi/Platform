@@ -61,10 +61,15 @@ public static class MauiProgram
 		using var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext();
 		db.Database.EnsureCreated();
 
-		// Loaded once, synchronously, before the first page appears — CvxLookupService and
-		// VaxEngineForecastService both assume ReferenceDataStore.Repository is already
-		// populated by the time DI resolves them.
-		app.Services.GetRequiredService<ReferenceDataStore>().LoadAsync().GetAwaiter().GetResult();
+		// Kicked off here, in the background, so the ~2.6MB of CDC reference data (first-run
+		// extraction from the app package, then XML parsing) never blocks the first page from
+		// appearing. Deliberately NOT awaited: CreateMauiApp() runs on the platform's main thread
+		// before any window exists, and blocking it here previously meant the app showed nothing
+		// at all until this finished. CvxLookupService and VaxEngineForecastService both await
+		// (or block on, as a last resort — see CvxLookupService) the same shared load themselves
+		// wherever they actually need it, so this is correct even if a page reaches them before
+		// this finishes; it just means loading happens while the roster is already on screen.
+		_ = app.Services.GetRequiredService<ReferenceDataStore>().LoadAsync();
 
 		return app;
 	}

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OpenCdsi.VaxEngine.Core.ReferenceData;
 
 namespace OpenCdsi.VaxEngine.Mobile.Services;
@@ -18,12 +19,25 @@ public static class ReferenceDataProvisioner
 
     public static async Task<ReferenceDataRepository> LoadAsync(CancellationToken ct = default)
     {
+        // Trace, not Debug - TRACE is defined in Release builds too (Debug isn't), so these
+        // timings are visible via `adb logcat` against the artifact CI actually produces, not
+        // just a local Debug build. Two stages logged separately since "extraction" (copying
+        // bundled assets to a real path) and "Load" (the engine's own XML parsing) are different
+        // code with very different plausible causes if one of them turns out to be the slow one.
+        var stopwatch = Stopwatch.StartNew();
         var destRoot = Path.Combine(FileSystem.CacheDirectory, "referencedata");
         await ExtractIfNeededAsync(destRoot, ct);
+        Trace.TraceInformation(
+            $"{nameof(ReferenceDataProvisioner)}: extraction finished after {stopwatch.ElapsedMilliseconds} ms");
 
-        return ReferenceDataRepository.Load(
+        var repository = ReferenceDataRepository.Load(
             antigensDirectory: Path.Combine(destRoot, "antigens"),
             scheduleFilePath: Path.Combine(destRoot, "schedule", "ScheduleSupportingData.xml"));
+        Trace.TraceInformation(
+            $"{nameof(ReferenceDataProvisioner)}: {nameof(ReferenceDataRepository.Load)} finished after " +
+            $"{stopwatch.ElapsedMilliseconds} ms total ({repository.AllSeries.Count} series loaded)");
+
+        return repository;
     }
 
     private static async Task ExtractIfNeededAsync(string destRoot, CancellationToken ct)

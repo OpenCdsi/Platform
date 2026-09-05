@@ -14,11 +14,30 @@ namespace OpenCdsi.VaxEngine.Mobile.Services;
 // same precision the underlying data actually offers - no more.
 public class CvxLookupService
 {
-    private readonly IReadOnlyList<CvxOption> _all;
+    private readonly ReferenceDataStore _referenceDataStore;
+    private readonly Lazy<IReadOnlyList<CvxOption>> _all;
 
     public CvxLookupService(ReferenceDataStore referenceDataStore)
     {
-        _all = referenceDataStore.Repository.Schedule.CvxToAntigen.Values
+        _referenceDataStore = referenceDataStore;
+        _all = new Lazy<IReadOnlyList<CvxOption>>(BuildOptions);
+    }
+
+    public IReadOnlyList<CvxOption> Search(string query)
+        => string.IsNullOrWhiteSpace(query)
+            ? _all.Value
+            : _all.Value.Where(o => o.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private IReadOnlyList<CvxOption> BuildOptions()
+    {
+        // Search() is called synchronously (from a ViewModel's OnSearchTextChanged), so this has
+        // to block rather than await - but only the first time a vaccine-search screen is actually
+        // opened, not at app startup. The background load MauiProgram.cs kicks off at launch has
+        // almost always already finished by the time a user navigates this deep, so in practice
+        // this returns immediately; it only genuinely waits if they get here unusually fast.
+        var repository = _referenceDataStore.LoadAsync().GetAwaiter().GetResult();
+
+        return repository.Schedule.CvxToAntigen.Values
             .Where(entry => !string.IsNullOrWhiteSpace(entry.ShortDescription))
             .Select(entry => new CvxOption(
                 Code: entry.Cvx,
@@ -27,9 +46,4 @@ public class CvxLookupService
             .OrderBy(option => option.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
-
-    public IReadOnlyList<CvxOption> Search(string query)
-        => string.IsNullOrWhiteSpace(query)
-            ? _all
-            : _all.Where(o => o.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
 }
