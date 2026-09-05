@@ -63,8 +63,8 @@
             </CollectionView>
 
             <!-- Inline add-dose panel, shown only while adding one -->
-            <VerticalStackLayout IsVisible="{Binding IsAddingDose}" Spacing="4"
-                                  Padding="10" BackgroundColor="{StaticResource SurfaceCard}"
+            <VerticalStackLayout IsVisible="{Binding IsAddingDose}" Spacing="12"
+                                  Padding="12" BackgroundColor="{StaticResource SurfaceCard}"
                                   Margin="0,0,0,16">
                 <SearchBar Text="{Binding SearchText}" Placeholder="Search by name or CVX code" />
                 <CollectionView ItemsSource="{Binding SearchResults}"
@@ -72,8 +72,10 @@
                                  SelectedItem="{Binding SelectedOption}"
                                  ItemTemplate="{StaticResource CvxOptionItemTemplate}"
                                  HeightRequest="120" />
-                <Label Text="Date Administered" FontSize="12" TextColor="{StaticResource TextSecondary}" />
-                <DatePicker Date="{Binding NewDoseDate}" MaximumDate="{x:Static sys:DateTime.Today}" />
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Date Administered" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                    <DatePicker Date="{Binding NewDoseDate}" MaximumDate="{x:Static sys:DateTime.Today}" />
+                </VerticalStackLayout>
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                     <Button Grid.Column="0" Text="Cancel" Command="{Binding CancelAddDoseCommand}" />
                     <Button Grid.Column="1" Text="Add" Command="{Binding ConfirmAddDoseCommand}"
