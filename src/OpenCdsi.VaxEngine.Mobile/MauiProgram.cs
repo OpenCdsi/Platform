@@ -45,6 +45,15 @@ public static class MauiProgram
 		builder.Services.AddTransient<ForecastResultViewModel>();
 		builder.Services.AddTransient<ForecastResultPage>();
 
+		// QuickForecastViewModel is a SINGLETON, not transient — the result page
+		// reads its state directly rather than re-passing DOB/gender/doses through
+		// query parameters. QuickForecastPage.OnAppearing() calls Reset() on it
+		// each time, so state doesn't leak between sessions.
+		builder.Services.AddSingleton<QuickForecastViewModel>();
+		builder.Services.AddTransient<QuickForecastPage>();
+		builder.Services.AddTransient<QuickForecastResultViewModel>();
+		builder.Services.AddTransient<QuickForecastResultPage>();
+
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif
