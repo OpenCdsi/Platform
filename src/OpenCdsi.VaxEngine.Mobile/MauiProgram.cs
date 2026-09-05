@@ -27,6 +27,12 @@ public static class MauiProgram
 		builder.Services.AddTransient<PatientsViewModel>();
 		builder.Services.AddTransient<PatientsPage>();
 
+		builder.Services.AddTransient<AddPatientViewModel>();
+		builder.Services.AddTransient<AddPatientPage>();
+
+		builder.Services.AddTransient<PatientDetailViewModel>();
+		builder.Services.AddTransient<PatientDetailPage>();
+
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif

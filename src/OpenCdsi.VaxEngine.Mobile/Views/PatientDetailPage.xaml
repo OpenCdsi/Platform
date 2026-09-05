@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:OpenCdsi.VaxEngine.Mobile.ViewModels"
+             xmlns:models="clr-namespace:OpenCdsi.VaxEngine.Mobile.Models"
+             x:Class="OpenCdsi.VaxEngine.Mobile.Views.PatientDetailPage"
+             x:DataType="vm:PatientDetailViewModel"
+             Title="{Binding Patient.FullName}"
+             BackgroundColor="{StaticResource SurfacePage}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="8">
+
+            <Label Text="{Binding Patient.DateOfBirth, StringFormat='Born {0:dd MMM yyyy}'}"
+                   FontSize="12" TextColor="{StaticResource TextSecondary}" />
+            <Label Text="{Binding Patient.Gender}"
+                   FontSize="12" TextColor="{StaticResource TextSecondary}" />
+
+            <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,4">
+                <Label Grid.Column="0" Text="Immunization history"
+                       FontSize="13" TextColor="{StaticResource TextSecondary}"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1" Text="+"
+                        Command="{Binding AddDoseCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource BrandPrimary}"
+                        FontSize="18" Padding="8,0" />
+            </Grid>
+
+            <CollectionView ItemsSource="{Binding Patient.ImmunizationEvents}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ImmunizationEvent">
+                        <Grid Padding="12,10" ColumnDefinitions="*,Auto"
+                              BackgroundColor="{StaticResource SurfaceCard}">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <!-- TODO: resolve CvxCode to a display name via
+                                     the CVX/alias lookup table once it exists.
+                                     Shows the raw code for now. -->
+                                <Label Text="{Binding CvxCode, StringFormat='CVX {0}'}"
+                                       FontSize="14" TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="{Binding DateAdministered, StringFormat='{0:dd MMM yyyy}'}"
+                                       FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Button Text="View forecast"
+                    Command="{Binding ViewForecastCommand}"
+                    BackgroundColor="{StaticResource BrandPrimary}"
+                    TextColor="White"
+                    Margin="0,16,0,0" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
