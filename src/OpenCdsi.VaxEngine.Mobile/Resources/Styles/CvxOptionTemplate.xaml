@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                     xmlns:models="clr-namespace:OpenCdsi.VaxEngine.Mobile.Models">
+
+    <!-- Shared by every CVX vaccine picker (AddDosePage, QuickForecastPage's inline panel) so
+         they render identically instead of drifting apart as two separately hand-maintained
+         copies - which is exactly what happened before this was factored out. -->
+    <DataTemplate x:Key="CvxOptionItemTemplate" x:DataType="models:CvxOption">
+        <Grid Padding="10,8" ColumnDefinitions="*,Auto"
+              BackgroundColor="{StaticResource SurfaceCard}">
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal" />
+                    <VisualState Name="Selected">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{StaticResource BrandPrimaryTint}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                <Label Text="{Binding DisplayName}" FontSize="14">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label" Binding="{Binding IsUnspecified}" Value="True">
+                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Label" Binding="{Binding IsUnspecified}" Value="False">
+                            <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
+                <Label Text="Formulation not known" FontSize="11"
+                       TextColor="{StaticResource TextMuted}"
+                       IsVisible="{Binding IsUnspecified}" />
+            </VerticalStackLayout>
+            <Label Grid.Column="1" Text="{Binding Code, StringFormat='CVX {0}'}"
+                   FontSize="11" FontFamily="Courier" TextColor="{StaticResource TextMuted}"
+                   VerticalOptions="Start" />
+        </Grid>
+    </DataTemplate>
+
+</ResourceDictionary>
