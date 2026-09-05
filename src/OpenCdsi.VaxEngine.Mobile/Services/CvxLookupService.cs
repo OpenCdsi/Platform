@@ -26,7 +26,10 @@ public class CvxLookupService
     public IReadOnlyList<CvxOption> Search(string query)
         => string.IsNullOrWhiteSpace(query)
             ? _all.Value
-            : _all.Value.Where(o => o.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+            : _all.Value
+                .Where(o => o.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                            || o.Code.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
     private IReadOnlyList<CvxOption> BuildOptions()
     {

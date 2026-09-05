@@ -12,7 +12,7 @@
     <VerticalStackLayout Padding="16" Spacing="4">
 
         <Label Text="Vaccine" FontSize="12" TextColor="{StaticResource TextSecondary}" />
-        <SearchBar Text="{Binding SearchText}" Placeholder="Search by name" Margin="0,0,0,4" />
+        <SearchBar Text="{Binding SearchText}" Placeholder="Search by name or CVX code" Margin="0,0,0,4" />
 
         <CollectionView ItemsSource="{Binding SearchResults}"
                          SelectionMode="Single"
