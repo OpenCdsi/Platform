@@ -56,7 +56,7 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Label Text="Date given" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+        <Label Text="Date Administered" FontSize="12" TextColor="{StaticResource TextSecondary}" />
         <DatePicker Date="{Binding DateAdministered}" MaximumDate="{x:Static sys:DateTime.Today}"
                     Margin="0,0,0,20" />
 

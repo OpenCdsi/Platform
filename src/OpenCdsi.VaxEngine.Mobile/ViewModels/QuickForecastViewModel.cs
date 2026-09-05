@@ -43,7 +43,12 @@ public partial class QuickForecastViewModel : ObservableObject
     // route, since these entries are ephemeral and don't need their own
     // navigable screen the way a real patient's history does.
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotAddingDose))]
     private bool isAddingDose;
+
+    // "Run forecast" hides while the inline vaccine picker is open, so it doesn't sit below (or
+    // get mistaken for part of) the picker panel while the user's mid-selection.
+    public bool IsNotAddingDose => !IsAddingDose;
 
     [ObservableProperty]
     private string searchText = string.Empty;

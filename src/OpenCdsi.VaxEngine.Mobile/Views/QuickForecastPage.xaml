@@ -102,6 +102,7 @@
 
             <Button Text="Run forecast"
                     Command="{Binding RunForecastCommand}"
+                    IsVisible="{Binding IsNotAddingDose}"
                     BackgroundColor="{StaticResource BrandPrimary}"
                     TextColor="White" />
 
