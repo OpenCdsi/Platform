@@ -21,6 +21,27 @@ https://github.com/OpenCdsi/OpenCdsi.Mobile/releases/latest/download/com.opencds
 The phone will need "install unknown apps" allowed for whatever app is used to scan it,
 since this is a direct sideload rather than a Play Store install.
 
+## License
+
+Licensed under the Mozilla Public License 2.0 (MPL-2.0) — see the [LICENSE](LICENSE) file for
+the full text and copyright notice. Every `.cs` and `.xaml` file carries the standard MPL 2.0
+file-level notice as its first lines (after the `<?xml ?>` declaration, for XAML):
+
+```
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+```
+
+**Any new source file added to this project must carry this same header** (as an XML comment,
+for `.xaml`) as its first lines, before any `using` statements, namespace declaration, or markup.
+
+**This license covers this project's own source code only.** `Resources/Raw/ReferenceData`
+(the bundled CDC CDSi supporting-data XML) is not authored by this project and is explicitly
+excluded — see that folder's own [`NOTICE`](src/OpenCdsi.Mobile/Resources/Raw/ReferenceData/NOTICE)
+file for its provenance. `Resources/Fonts` (Open Sans, Apache License 2.0) is likewise
+third-party and outside this project's own MPL notice.
+
 ## Structure
 
 ```
