@@ -38,10 +38,7 @@ public static class MauiProgram
 		builder.Services.AddTransient<AddDoseViewModel>();
 		builder.Services.AddTransient<AddDosePage>();
 
-		// Swap this registration for the real adapter once vaxengine.core is
-		// wired in — everything else depends on IForecastEngineAdapter, not on
-		// this class, so this is the only line that needs to change.
-		builder.Services.AddSingleton<IForecastEngineAdapter, PlaceholderForecastEngineAdapter>();
+		builder.Services.AddSingleton<IForecastEngineAdapter, VaxEngineForecastService>();
 		builder.Services.AddTransient<ForecastResultViewModel>();
 		builder.Services.AddTransient<ForecastResultPage>();
 

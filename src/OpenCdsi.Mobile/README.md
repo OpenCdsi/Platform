@@ -11,10 +11,20 @@ rather than a project reference.
 src/OpenCdsi.VaxEngine.Mobile/   .NET MAUI app (net10.0-android)
 ```
 
-Currently ships one screen — the patients roster (list, search, navigate to
-a patient) — backed by a local SQLite database via EF Core. Add-patient,
-patient-detail, and quick-forecast screens (the ones that will actually call
-into `OpenCdsi.VaxEngine.Core`) are not built yet.
+All MVP screens are built and navigable: patients roster, add patient,
+patient detail (immunization history + add dose), forecast result, and a
+standalone quick-forecast entry/result pair for a first encounter before
+deciding to add a patient — all backed by a local SQLite database via EF
+Core. Forecasting itself calls the real `OpenCdsi.VaxEngine.Core` pipeline
+(`VaxEngineForecastService`, registered as `IForecastEngineAdapter` in
+`MauiProgram.cs`) against the CDC reference data bundled under
+`Resources/Raw/ReferenceData` — see that folder's `manifest.txt` and
+`ReferenceDataProvisioner` for how the bundled XML gets extracted to a real
+path on first run (the engine reads real files, not app-package streams).
+
+`CvxLookupService` still has a handful of hand-typed sample entries, not the
+real CVX code list — good enough to exercise `AddDosePage`/`QuickForecastPage`'s
+search UI, not to record real doses against.
 
 ## Building
 
