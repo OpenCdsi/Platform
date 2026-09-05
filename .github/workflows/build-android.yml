@@ -9,7 +9,7 @@
 # OpenCdsi.VaxEngine is published from OpenCdsi/VaxEngine, a different repo, so restoring it here
 # needs a classic PAT with the read:packages scope, stored as the NUGET_READ_PAT repo secret.
 
-name: Build VaxEngine App (Android)
+name: Build OpenCdsi Mobile (Android)
 
 on:
   push:
@@ -52,6 +52,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: vaxengine-mobile-android
+          name: opencdsi-mobile-android
           path: src/OpenCdsi.Mobile/bin/Release/net10.0-android/**/*-Signed.apk
           if-no-files-found: error
