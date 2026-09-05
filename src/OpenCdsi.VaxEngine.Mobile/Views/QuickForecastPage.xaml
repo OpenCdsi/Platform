@@ -73,7 +73,18 @@
                                  HeightRequest="120">
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:CvxOption">
-                            <Grid Padding="8,6" ColumnDefinitions="*,Auto">
+                            <Grid Padding="8,6" ColumnDefinitions="*,Auto"
+                                  BackgroundColor="{StaticResource SurfaceCard}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup Name="CommonStates">
+                                        <VisualState Name="Normal" />
+                                        <VisualState Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="{StaticResource BrandPrimaryTint}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
                                 <Label Grid.Column="0" Text="{Binding DisplayName}" FontSize="13" />
                                 <Label Grid.Column="1" Text="{Binding Code, StringFormat='CVX {0}'}"
                                        FontSize="11" FontFamily="Courier" TextColor="{StaticResource TextMuted}" />

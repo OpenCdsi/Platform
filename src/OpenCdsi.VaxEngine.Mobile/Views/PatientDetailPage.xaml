@@ -8,6 +8,11 @@
              Title="{Binding Patient.FullName}"
              BackgroundColor="{StaticResource SurfacePage}">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Edit" Command="{Binding EditPatientCommand}" />
+        <ToolbarItem Text="Delete" Command="{Binding DeletePatientCommand}" />
+    </ContentPage.ToolbarItems>
+
     <ScrollView>
         <VerticalStackLayout Padding="16" Spacing="8">
 
@@ -41,6 +46,14 @@
                                 <Label Text="{Binding DateAdministered, StringFormat='{0:dd MMM yyyy}'}"
                                        FontSize="12" TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="&#10005;" FontSize="14" TextColor="{StaticResource TextMuted}"
+                                   VerticalOptions="Center" Padding="10,0,0,0">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.VoidDoseCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                        CommandParameter="{Binding .}" />
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>

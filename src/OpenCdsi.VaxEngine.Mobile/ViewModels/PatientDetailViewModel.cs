@@ -47,4 +47,58 @@ public partial class PatientDetailViewModel : ObservableObject
         // Not built yet — the next natural stop after these two pages,
         // since this is where the actual vaxengine.core call happens.
         => await Shell.Current.GoToAsync($"forecastresult?patientId={PatientId}");
+
+    [RelayCommand]
+    private async Task EditPatientAsync()
+        => await Shell.Current.GoToAsync($"addpatient?id={PatientId}");
+
+    [RelayCommand]
+    private async Task DeletePatientAsync()
+    {
+        if (Patient is null) return;
+
+        var page = Shell.Current.CurrentPage;
+        var confirmed = await page.DisplayAlert(
+            "Remove patient",
+            $"Remove {Patient.FullName} and their entire immunization history? This can't be undone.",
+            "Remove", "Cancel");
+        if (!confirmed) return;
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync();
+        var entity = await db.Patients.FirstOrDefaultAsync(p => p.Id == Patient.Id);
+        if (entity is null) return;
+
+        // ImmunizationEvent.PatientId is a required FK, so EF's default (and what
+        // EnsureCreated() actually applies) is cascade delete - no need to remove doses first.
+        db.Patients.Remove(entity);
+        await db.SaveChangesAsync();
+
+        await Shell.Current.GoToAsync("..");
+    }
+
+    [RelayCommand]
+    private async Task VoidDoseAsync(ImmunizationEvent? dose)
+    {
+        if (dose is null) return;
+
+        var page = Shell.Current.CurrentPage;
+        var confirmed = await page.DisplayAlert(
+            "Remove dose",
+            $"Remove this dose (CVX {dose.CvxCode}, {dose.DateAdministered:dd MMM yyyy}) from the record?",
+            "Remove", "Cancel");
+        if (!confirmed) return;
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync();
+        var entity = await db.ImmunizationEvents.FirstOrDefaultAsync(e => e.Id == dose.Id);
+        if (entity is null) return;
+
+        // Voided, not deleted - forecasts are computed against history, so silently removing a
+        // dose would change future forecast results with no trace of why (see AppDbContext's own
+        // query filter, which already excludes voided doses from every normal query).
+        entity.IsVoided = true;
+        entity.VoidedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync();
+
+        await LoadCommand.ExecuteAsync(null);
+    }
 }

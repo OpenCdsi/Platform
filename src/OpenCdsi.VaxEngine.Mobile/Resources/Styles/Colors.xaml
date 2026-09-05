@@ -50,6 +50,11 @@
     <Color x:Key="BrandSecondary">#4363D8</Color>
     <Color x:Key="BrandAccent">#F58231</Color>
 
+    <!-- A light tint of BrandPrimary, for selected-row backgrounds — a full BrandPrimary fill
+         would need every child label's text color flipped for contrast; this stays legible
+         against the existing TextPrimary/TextSecondary/TextMuted colors as-is. -->
+    <Color x:Key="BrandPrimaryTint">#F3E5F8</Color>
+
     <!-- Semantic status colors — deliberately distinct from BrandAccent so a
          "not recommended" dose warning never blends into brand styling. -->
     <Color x:Key="StatusDueNow">#378ADD</Color>

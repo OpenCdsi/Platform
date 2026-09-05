@@ -6,7 +6,7 @@
              xmlns:models="clr-namespace:OpenCdsi.VaxEngine.Mobile.Models"
              x:Class="OpenCdsi.VaxEngine.Mobile.Views.AddPatientPage"
              x:DataType="vm:AddPatientViewModel"
-             Title="Add patient"
+             Title="{Binding PageTitle}"
              BackgroundColor="{StaticResource SurfacePage}">
 
     <ScrollView>

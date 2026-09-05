@@ -23,6 +23,16 @@
                 <DataTemplate x:DataType="models:CvxOption">
                     <Grid Padding="10,8" ColumnDefinitions="*,Auto"
                           BackgroundColor="{StaticResource SurfaceCard}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup Name="CommonStates">
+                                <VisualState Name="Normal" />
+                                <VisualState Name="Selected">
+                                    <VisualState.Setters>
+                                        <Setter Property="BackgroundColor" Value="{StaticResource BrandPrimaryTint}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
                         <VerticalStackLayout Grid.Column="0" Spacing="2">
                             <Label Text="{Binding DisplayName}" FontSize="14">
                                 <Label.Triggers>
