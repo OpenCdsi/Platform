@@ -23,7 +23,7 @@
 		<ApplicationTitle>OpenCdsi Mobile</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.opencdsi.vaxengine.mobile</ApplicationId>
+		<ApplicationId>com.opencdsi.mobile</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
