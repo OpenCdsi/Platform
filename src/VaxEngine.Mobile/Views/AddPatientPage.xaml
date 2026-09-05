@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:vm="clr-namespace:VaxEngine.Mobile.ViewModels"
+             xmlns:models="clr-namespace:VaxEngine.Mobile.Models"
+             x:Class="VaxEngine.Mobile.Views.AddPatientPage"
+             x:DataType="vm:AddPatientViewModel"
+             Title="{Binding PageTitle}"
+             BackgroundColor="{StaticResource SurfacePage}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="4">
+
+            <Label Text="First name" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+            <Entry Text="{Binding FirstName}" Placeholder="First name" Margin="0,0,0,12" />
+
+            <Label Text="Last name" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+            <Entry Text="{Binding LastName}" Placeholder="Last name" Margin="0,0,0,12" />
+
+            <Label Text="Date of birth" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+            <DatePicker Date="{Binding DateOfBirth}" MaximumDate="{x:Static sys:DateTime.Today}"
+                        Margin="0,0,0,12" />
+
+            <Label Text="Gender" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+            <!-- Picker for now — matches the segmented-control mockup in
+                 behavior, not yet in pixel-for-pixel appearance. Upgrading
+                 to a true three-way toggle is a UI polish pass, not a data
+                 or logic change. -->
+            <Picker ItemsSource="{Binding GenderOptions}"
+                    SelectedItem="{Binding Gender}"
+                    Margin="0,0,0,20" />
+
+            <Button Text="Save patient"
+                    Command="{Binding SaveCommand}"
+                    BackgroundColor="{StaticResource BrandPrimary}"
+                    TextColor="White" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

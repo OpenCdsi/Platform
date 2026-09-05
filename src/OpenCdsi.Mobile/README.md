@@ -9,7 +9,7 @@ name; the app's on-device display name is "OpenCdsi Mobile".)
 ## Structure
 
 ```
-src/OpenCdsi.VaxEngine.Mobile/   .NET MAUI app (net10.0-android)
+src/VaxEngine.Mobile/   .NET MAUI app (net10.0-android)
 ```
 
 All MVP screens are built and navigable: patients roster (search, edit,
@@ -53,7 +53,7 @@ then:
 
 ```
 dotnet restore
-dotnet build src/OpenCdsi.VaxEngine.Mobile/OpenCdsi.VaxEngine.Mobile.csproj -f net10.0-android
+dotnet build src/VaxEngine.Mobile/VaxEngine.Mobile.csproj -f net10.0-android
 ```
 
 CI builds the Android app on every push/PR touching `src/` — see

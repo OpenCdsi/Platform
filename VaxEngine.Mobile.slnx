@@ -1,5 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/OpenCdsi.VaxEngine.Mobile/OpenCdsi.VaxEngine.Mobile.csproj" />
+    <Project Path="src/VaxEngine.Mobile/VaxEngine.Mobile.csproj" />
   </Folder>
 </Solution>
