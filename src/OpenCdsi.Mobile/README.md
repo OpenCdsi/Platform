@@ -57,4 +57,6 @@ dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-android
 ```
 
 CI builds the Android app on every push/PR touching `src/` — see
-`.github/workflows/build-android.yml`.
+`.github/workflows/build-android.yml`. Pushing a semver tag (`v1.2.3`) additionally
+stamps that version into the build (`ApplicationDisplayVersion`/`ApplicationVersion`)
+and publishes the signed APK to a GitHub Release for that tag.

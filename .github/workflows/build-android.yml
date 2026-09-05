@@ -1,4 +1,5 @@
-# Builds the app for Android on every push/PR touching src/.
+# Builds the app for Android on every push/PR touching src/, plus any push of a semver tag
+# (v1.2.3-style) - which additionally publishes the built APK to a GitHub Release.
 #
 # Needs the real Android SDK (platform android.jar, build-tools), which .NET's workload install
 # fetches from Google's package repository at build time - a GitHub-hosted runner has
@@ -14,6 +15,7 @@ name: Build OpenCdsi Mobile (Android)
 on:
   push:
     branches: [main]
+    tags: ['v*.*.*']
   pull_request:
   workflow_dispatch:
 
@@ -42,12 +44,43 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
         run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
 
+      # Only produces output on a tag push (empty otherwise, so a plain push/PR build keeps
+      # using the ApplicationDisplayVersion/ApplicationVersion already in the csproj). Expects
+      # tags shaped like v1.2.3 (a leading "v" plus MAJOR.MINOR.PATCH; a trailing -prerelease or
+      # +build suffix is accepted and kept in the display version, just not the version code).
+      # The push-tags filter above only loosely matches "v*.*.*" - this is the real, strict
+      # semver check, and fails the build with a clear error on anything that doesn't match.
+      - name: Determine version from tag
+        id: version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+
+          if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver version (expected vMAJOR.MINOR.PATCH, e.g. v1.2.3)"
+            exit 1
+          fi
+
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+
+          # Android's versionCode must be a strictly increasing integer between releases - not
+          # the semver string itself. Packs MAJOR/MINOR/PATCH into one int (assumes MINOR and
+          # PATCH each stay under 100, which is the usual case); revisit if that ever binds.
+          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+
+          echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION /p:ApplicationVersion=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
       - name: Build (Release, Android)
         run: >
           dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
           -c Release
           -f net10.0-android
           --no-restore
+          ${{ steps.version.outputs.msbuild_args }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -55,3 +88,24 @@ jobs:
           name: opencdsi-mobile-android
           path: src/OpenCdsi.Mobile/bin/Release/net10.0-android/**/*-Signed.apk
           if-no-files-found: error
+
+  release:
+    needs: build-android
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: opencdsi-mobile-android
+          path: apk
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: apk/**/*-Signed.apk
