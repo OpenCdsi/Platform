@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenCdsi.VaxEngine.Mobile.Data;
+using OpenCdsi.VaxEngine.Mobile.Services;
 using OpenCdsi.VaxEngine.Mobile.ViewModels;
 using OpenCdsi.VaxEngine.Mobile.Views;
 
@@ -32,6 +33,17 @@ public static class MauiProgram
 
 		builder.Services.AddTransient<PatientDetailViewModel>();
 		builder.Services.AddTransient<PatientDetailPage>();
+
+		builder.Services.AddSingleton<CvxLookupService>();
+		builder.Services.AddTransient<AddDoseViewModel>();
+		builder.Services.AddTransient<AddDosePage>();
+
+		// Swap this registration for the real adapter once vaxengine.core is
+		// wired in — everything else depends on IForecastEngineAdapter, not on
+		// this class, so this is the only line that needs to change.
+		builder.Services.AddSingleton<IForecastEngineAdapter, PlaceholderForecastEngineAdapter>();
+		builder.Services.AddTransient<ForecastResultViewModel>();
+		builder.Services.AddTransient<ForecastResultPage>();
 
 #if DEBUG
 		builder.Logging.AddDebug();

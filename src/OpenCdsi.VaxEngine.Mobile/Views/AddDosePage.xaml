@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:vm="clr-namespace:OpenCdsi.VaxEngine.Mobile.ViewModels"
+             xmlns:models="clr-namespace:OpenCdsi.VaxEngine.Mobile.Models"
+             x:Class="OpenCdsi.VaxEngine.Mobile.Views.AddDosePage"
+             x:DataType="vm:AddDoseViewModel"
+             Title="Add immunization"
+             BackgroundColor="{StaticResource SurfacePage}">
+
+    <VerticalStackLayout Padding="16" Spacing="4">
+
+        <Label Text="Vaccine" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+        <SearchBar Text="{Binding SearchText}" Placeholder="Search by name" Margin="0,0,0,4" />
+
+        <CollectionView ItemsSource="{Binding SearchResults}"
+                         SelectionMode="Single"
+                         SelectedItem="{Binding SelectedOption}"
+                         HeightRequest="180"
+                         Margin="0,0,0,16">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:CvxOption">
+                    <Grid Padding="10,8" ColumnDefinitions="*,Auto"
+                          BackgroundColor="{StaticResource SurfaceCard}">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="{Binding DisplayName}" FontSize="14">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsUnspecified}" Value="True">
+                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsUnspecified}" Value="False">
+                                        <Setter Property="TextColor" Value="{StaticResource TextPrimary}" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <Label Text="Formulation not known" FontSize="11"
+                                   TextColor="{StaticResource TextMuted}"
+                                   IsVisible="{Binding IsUnspecified}" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1" Text="{Binding Code, StringFormat='CVX {0}'}"
+                               FontSize="11" FontFamily="Courier" TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Start" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Label Text="Date given" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+        <DatePicker Date="{Binding DateAdministered}" MaximumDate="{x:Static sys:DateTime.Today}"
+                    Margin="0,0,0,20" />
+
+        <Button Text="Save dose"
+                Command="{Binding SaveCommand}"
+                BackgroundColor="{StaticResource BrandPrimary}"
+                TextColor="White" />
+
+    </VerticalStackLayout>
+
+</ContentPage>
