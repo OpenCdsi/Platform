@@ -40,11 +40,11 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
-        run: dotnet restore src/VaxEngine.Mobile/VaxEngine.Mobile.csproj
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
 
       - name: Build (Release, Android)
         run: >
-          dotnet build src/VaxEngine.Mobile/VaxEngine.Mobile.csproj
+          dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
           -c Release
           -f net10.0-android
           --no-restore
@@ -53,5 +53,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vaxengine-mobile-android
-          path: src/VaxEngine.Mobile/bin/Release/net10.0-android/**/*-Signed.apk
+          path: src/OpenCdsi.Mobile/bin/Release/net10.0-android/**/*-Signed.apk
           if-no-files-found: error

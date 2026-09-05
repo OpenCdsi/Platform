@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+             xmlns:vm="clr-namespace:OpenCdsi.Mobile.ViewModels"
+             xmlns:models="clr-namespace:OpenCdsi.Mobile.Models"
+             x:Class="OpenCdsi.Mobile.Views.QuickForecastPage"
+             x:DataType="vm:QuickForecastViewModel"
+             Title="Quick forecast"
+             BackgroundColor="{StaticResource SurfacePage}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="4">
+
+            <Label Text="Nothing entered here is saved. Use this for a first encounter before deciding to add a patient."
+                   FontSize="12" TextColor="{StaticResource TextMuted}" Margin="0,0,0,16" />
+
+            <Label Text="Date of birth" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+            <DatePicker Date="{Binding DateOfBirth}" MaximumDate="{x:Static sys:DateTime.Today}"
+                        Margin="0,0,0,16" />
+
+            <Label Text="Gender" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+            <Picker ItemsSource="{Binding GenderOptions}"
+                    SelectedItem="{Binding Gender}"
+                    Margin="0,0,0,16" />
+
+            <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,4">
+                <Label Grid.Column="0" Text="Immunization history"
+                       FontSize="13" TextColor="{StaticResource TextSecondary}"
+                       VerticalOptions="Center" />
+                <Button Grid.Column="1" Text="+"
+                        Command="{Binding BeginAddDoseCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource BrandPrimary}"
+                        FontSize="18" Padding="8,0" />
+            </Grid>
+
+            <CollectionView ItemsSource="{Binding Doses}" Margin="0,0,0,8">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:QuickDoseEntry">
+                        <Grid Padding="10,8" ColumnDefinitions="*,Auto,Auto"
+                              BackgroundColor="{StaticResource SurfaceCard}">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding Vaccine.DisplayName}" FontSize="14"
+                                       TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="{Binding DateAdministered, StringFormat='{0:dd MMM yyyy}'}"
+                                       FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding Vaccine.Code, StringFormat='CVX {0}'}"
+                                   FontSize="11" FontFamily="Courier" TextColor="{StaticResource TextMuted}"
+                                   VerticalOptions="Center" Margin="0,0,10,0" />
+                            <Label Grid.Column="2" Text="&#10005;" FontSize="14" TextColor="{StaticResource TextMuted}"
+                                   VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.RemoveDoseCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                        CommandParameter="{Binding .}" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Inline add-dose panel, shown only while adding one -->
+            <VerticalStackLayout IsVisible="{Binding IsAddingDose}" Spacing="12"
+                                  Padding="12" BackgroundColor="{StaticResource SurfaceCard}"
+                                  Margin="0,0,0,16">
+                <SearchBar Text="{Binding SearchText}" Placeholder="Search by name or CVX code" />
+                <CollectionView ItemsSource="{Binding SearchResults}"
+                                 SelectionMode="Single"
+                                 SelectedItem="{Binding SelectedOption}"
+                                 ItemTemplate="{StaticResource CvxOptionItemTemplate}"
+                                 HeightRequest="180"
+                                 Margin="0,0,0,8" />
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Date Administered" FontSize="12" TextColor="{StaticResource TextSecondary}" />
+                    <DatePicker Date="{Binding NewDoseDate}" MaximumDate="{x:Static sys:DateTime.Today}" />
+                </VerticalStackLayout>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Grid.Column="0" Text="Cancel" Command="{Binding CancelAddDoseCommand}" />
+                    <Button Grid.Column="1" Text="Add" Command="{Binding ConfirmAddDoseCommand}"
+                            BackgroundColor="{StaticResource BrandPrimary}" TextColor="White" />
+                </Grid>
+            </VerticalStackLayout>
+
+            <Button Text="Run forecast"
+                    Command="{Binding RunForecastCommand}"
+                    IsVisible="{Binding IsNotAddingDose}"
+                    BackgroundColor="{StaticResource BrandPrimary}"
+                    TextColor="White" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
