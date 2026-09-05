@@ -20,7 +20,7 @@
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 
 		<!-- Display name -->
-		<ApplicationTitle>VaxEngine</ApplicationTitle>
+		<ApplicationTitle>VaxEngine.Mobile</ApplicationTitle>
 
 		<!-- App Identifier -->
 		<ApplicationId>com.opencdsi.vaxengine.mobile</ApplicationId>
@@ -37,7 +37,7 @@
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#FFFFFF" />
 
 		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#FFFFFF" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#FFFFFF" BaseSize="160,160" />
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
