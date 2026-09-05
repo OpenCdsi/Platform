@@ -6,28 +6,48 @@ using OpenCdsi.VaxEngine.Mobile.Models;
 
 namespace OpenCdsi.VaxEngine.Mobile.ViewModels;
 
-// Doubles as the edit-patient screen: reached with no "id" query param from the roster's
-// "Add patient" button (create mode), or with one from PatientDetailPage's "Edit" toolbar item
-// (edit mode, loading the existing patient into the same form instead of starting blank).
+// Three modes, distinguished by which query params arrive:
+//  - no "id", no "fromQuickForecast": plain create, reached from the roster's "Add patient"
+//    button - blank form.
+//  - "id" set: edit, reached from PatientDetailPage's "Edit" toolbar item - loads the existing
+//    patient into the same form instead of starting blank.
+//  - "fromQuickForecast=true": create, reached from QuickForecastResultPage's "Save as patient" -
+//    DOB/gender pre-filled from that session, and its doses get attached to the new patient on
+//    save instead of the session's own now-removed direct-save path.
 [QueryProperty(nameof(PatientId), "id")]
+[QueryProperty(nameof(FromQuickForecast), "fromQuickForecast")]
 public partial class AddPatientViewModel : ObservableObject
 {
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly QuickForecastViewModel _quickForecastSession;
 
-    public AddPatientViewModel(IDbContextFactory<AppDbContext> dbContextFactory)
+    public AddPatientViewModel(IDbContextFactory<AppDbContext> dbContextFactory, QuickForecastViewModel quickForecastSession)
     {
         _dbContextFactory = dbContextFactory;
+        _quickForecastSession = quickForecastSession;
     }
 
     [ObservableProperty]
     private string patientId = string.Empty;
 
+    [ObservableProperty]
+    private string fromQuickForecast = string.Empty;
+
     private bool IsEditing => Guid.TryParse(PatientId, out _);
+    private bool IsFromQuickForecast => string.Equals(FromQuickForecast, "true", StringComparison.OrdinalIgnoreCase);
 
     partial void OnPatientIdChanged(string value)
     {
         OnPropertyChanged(nameof(PageTitle));
         if (IsEditing) _ = LoadCommand.ExecuteAsync(null);
+    }
+
+    partial void OnFromQuickForecastChanged(string value)
+    {
+        if (!IsFromQuickForecast) return;
+
+        DateOfBirth = _quickForecastSession.DateOfBirth;
+        Gender = _quickForecastSession.Gender;
     }
 
     public string PageTitle => IsEditing ? "Edit patient" : "Add patient";
@@ -99,7 +119,32 @@ public partial class AddPatientViewModel : ObservableObject
         };
 
         db.Patients.Add(newPatient);
+
+        if (IsFromQuickForecast)
+        {
+            foreach (var dose in _quickForecastSession.Doses)
+            {
+                db.ImmunizationEvents.Add(new ImmunizationEvent
+                {
+                    PatientId = newPatient.Id,
+                    CvxCode = dose.Vaccine.Code,
+                    DateAdministered = dose.DateAdministered
+                });
+            }
+        }
+
         await db.SaveChangesAsync();
+
+        if (IsFromQuickForecast)
+        {
+            _quickForecastSession.Reset();
+
+            // Pop QuickForecastPage, QuickForecastResultPage, and this page before pushing
+            // patient detail, so back from there lands on the roster, not on stale quick-forecast/
+            // add-patient screens for a session that's now over.
+            await Shell.Current.GoToAsync($"../../../patientdetail?id={newPatient.Id}");
+            return;
+        }
 
         // ".." pops this page before pushing patient detail, so the new
         // patient replaces the (now-stale, blank) form in the back stack.

@@ -17,6 +17,9 @@ public partial class AddDoseViewModel : ObservableObject
     {
         _dbContextFactory = dbContextFactory;
         _cvxLookup = cvxLookup;
+        // Populated up front, not left empty until the first keystroke, so the picker shows what
+        // it's searching over as soon as it opens instead of looking blank/broken.
+        searchResults = _cvxLookup.Search(string.Empty);
     }
 
     [ObservableProperty]
@@ -26,7 +29,7 @@ public partial class AddDoseViewModel : ObservableObject
     private string searchText = string.Empty;
 
     [ObservableProperty]
-    private IReadOnlyList<CvxOption> searchResults = Array.Empty<CvxOption>();
+    private IReadOnlyList<CvxOption> searchResults;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
