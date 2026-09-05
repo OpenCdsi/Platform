@@ -20,7 +20,7 @@
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 
 		<!-- Display name -->
-		<ApplicationTitle>VaxEngine.Mobile</ApplicationTitle>
+		<ApplicationTitle>OpenCdsi Mobile</ApplicationTitle>
 
 		<!-- App Identifier -->
 		<ApplicationId>com.opencdsi.vaxengine.mobile</ApplicationId>
