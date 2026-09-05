@@ -6,6 +6,21 @@ CDSi forecasting engine, consumed here as a NuGet package from GitHub Packages
 rather than a project reference. ("VaxEngine App" is this repo/solution's own
 name; the app's on-device display name is "OpenCdsi Mobile".)
 
+## Install
+
+<img src="assets/qr-latest-apk.png" alt="QR code linking to the latest release APK" width="200" />
+
+Scan to download the latest signed APK straight to an Android phone (or use the link
+directly). This always resolves to whichever tagged release is currently newest — the
+QR code itself never needs regenerating:
+
+```
+https://github.com/OpenCdsi/OpenCdsi.Mobile/releases/latest/download/com.opencdsi.mobile-Signed.apk
+```
+
+The phone will need "install unknown apps" allowed for whatever app is used to scan it,
+since this is a direct sideload rather than a Play Store install.
+
 ## Structure
 
 ```
