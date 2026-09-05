@@ -16,11 +16,14 @@ public class CvxLookupService
 {
     private readonly ReferenceDataStore _referenceDataStore;
     private readonly Lazy<IReadOnlyList<CvxOption>> _all;
+    private readonly Lazy<IReadOnlyDictionary<string, CvxOption>> _byCode;
 
     public CvxLookupService(ReferenceDataStore referenceDataStore)
     {
         _referenceDataStore = referenceDataStore;
         _all = new Lazy<IReadOnlyList<CvxOption>>(BuildOptions);
+        _byCode = new Lazy<IReadOnlyDictionary<string, CvxOption>>(
+            () => _all.Value.ToDictionary(o => o.Code));
     }
 
     public IReadOnlyList<CvxOption> Search(string query)
@@ -30,6 +33,11 @@ public class CvxLookupService
                 .Where(o => o.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
                             || o.Code.Contains(query, StringComparison.OrdinalIgnoreCase))
                 .ToList();
+
+    // Exact lookup for rendering a stored CvxCode back to its display name (e.g. dose history),
+    // as opposed to Search()'s substring matching against user-typed input.
+    public CvxOption? FindByCode(string code)
+        => _byCode.Value.GetValueOrDefault(code);
 
     private IReadOnlyList<CvxOption> BuildOptions()
     {

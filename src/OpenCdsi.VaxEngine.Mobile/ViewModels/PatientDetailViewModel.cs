@@ -44,8 +44,6 @@ public partial class PatientDetailViewModel : ObservableObject
 
     [RelayCommand]
     private async Task ViewForecastAsync()
-        // Not built yet — the next natural stop after these two pages,
-        // since this is where the actual vaxengine.core call happens.
         => await Shell.Current.GoToAsync($"forecastresult?patientId={PatientId}");
 
     [RelayCommand]

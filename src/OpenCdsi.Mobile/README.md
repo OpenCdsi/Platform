@@ -1,9 +1,10 @@
 # VaxEngine App
 
-A .NET MAUI Android app for VaxEngine — a patient-facing immunization
-tracker built on top of the [OpenCdsi.VaxEngine](https://github.com/OpenCdsi/VaxEngine)
+Source for **OpenCdsi Mobile**, a patient-facing immunization tracker built
+on top of the [OpenCdsi.VaxEngine](https://github.com/OpenCdsi/VaxEngine)
 CDSi forecasting engine, consumed here as a NuGet package from GitHub Packages
-rather than a project reference.
+rather than a project reference. ("VaxEngine App" is this repo/solution's own
+name; the app's on-device display name is "OpenCdsi Mobile".)
 
 ## Structure
 
@@ -11,20 +12,24 @@ rather than a project reference.
 src/OpenCdsi.VaxEngine.Mobile/   .NET MAUI app (net10.0-android)
 ```
 
-All MVP screens are built and navigable: patients roster, add patient,
-patient detail (immunization history + add dose), forecast result, and a
-standalone quick-forecast entry/result pair for a first encounter before
-deciding to add a patient — all backed by a local SQLite database via EF
-Core. Forecasting itself calls the real `OpenCdsi.VaxEngine.Core` pipeline
-(`VaxEngineForecastService`, registered as `IForecastEngineAdapter` in
-`MauiProgram.cs`) against the CDC reference data bundled under
-`Resources/Raw/ReferenceData` — see that folder's `manifest.txt` and
-`ReferenceDataProvisioner` for how the bundled XML gets extracted to a real
-path on first run (the engine reads real files, not app-package streams).
+All MVP screens are built and navigable: patients roster (search, edit,
+delete), add/edit patient, patient detail (immunization history with
+add/void dose), forecast result, and a standalone quick-forecast
+entry/result pair for a first encounter before deciding to add a patient —
+all backed by a local SQLite database via EF Core. Forecasting itself calls
+the real `OpenCdsi.VaxEngine.Core` pipeline (`VaxEngineForecastService`,
+registered as `IForecastEngineAdapter` in `MauiProgram.cs`) against the CDC
+reference data bundled under `Resources/Raw/ReferenceData` — see that
+folder's `manifest.txt` and `ReferenceDataProvisioner` for how the bundled
+XML gets extracted to a real path on first run (the engine reads real
+files, not app-package streams).
 
-`CvxLookupService` still has a handful of hand-typed sample entries, not the
-real CVX code list — good enough to exercise `AddDosePage`/`QuickForecastPage`'s
-search UI, not to record real doses against.
+`CvxLookupService` builds its vaccine list from that same reference data
+(`ScheduleSupportingData.CvxToAntigen`), not a hand-typed sample — every
+code the vaccine pickers show is one the forecast engine actually
+recognizes. `AddDosePage` and `QuickForecastPage`'s inline picker both
+search it by name or CVX code through one shared item template
+(`Resources/Styles/CvxOptionTemplate.xaml`), so the two can't drift apart.
 
 ## Building
 

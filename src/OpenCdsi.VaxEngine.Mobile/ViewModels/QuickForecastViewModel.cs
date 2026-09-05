@@ -6,7 +6,7 @@ using OpenCdsi.VaxEngine.Mobile.Services;
 
 namespace OpenCdsi.VaxEngine.Mobile.ViewModels;
 
-// Registered as a singleton (see README) so QuickForecastResultViewModel can
+// Registered as a singleton (see MauiProgram.cs) so QuickForecastResultViewModel can
 // read this session's state directly, without a database round trip in
 // between — nothing here is ever persisted unless "Save as patient" is
 // tapped on the result screen. Reset() is called each time the entry page
