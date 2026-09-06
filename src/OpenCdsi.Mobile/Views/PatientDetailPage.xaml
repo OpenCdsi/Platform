@@ -44,7 +44,7 @@
             <CollectionView ItemsSource="{Binding Patient.ImmunizationEvents}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="models:ImmunizationEvent">
-                        <Grid Padding="12,10" ColumnDefinitions="*,Auto"
+                        <Grid Padding="12,10" ColumnDefinitions="*,Auto,Auto"
                               BackgroundColor="{StaticResource SurfaceCard}">
                             <VerticalStackLayout Grid.Column="0" Spacing="2">
                                 <Label Text="{Binding CvxCode, Converter={StaticResource CvxToDisplayName}}"
@@ -52,7 +52,10 @@
                                 <Label Text="{Binding DateAdministered, StringFormat='{0:dd MMM yyyy}'}"
                                        FontSize="12" TextColor="{StaticResource TextSecondary}" />
                             </VerticalStackLayout>
-                            <Label Grid.Column="1" Text="&#10005;" FontSize="14" TextColor="{StaticResource TextMuted}"
+                            <Label Grid.Column="1" Text="{Binding CvxCode, StringFormat='CVX {0}'}"
+                                   FontSize="11" FontFamily="Courier" TextColor="{StaticResource TextMuted}"
+                                   VerticalOptions="Center" Margin="0,0,10,0" />
+                            <Label Grid.Column="2" Text="&#10005;" FontSize="14" TextColor="{StaticResource TextMuted}"
                                    VerticalOptions="Center" Padding="10,0,0,0">
                                 <Label.GestureRecognizers>
                                     <TapGestureRecognizer
