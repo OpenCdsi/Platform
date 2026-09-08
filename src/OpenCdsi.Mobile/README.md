@@ -92,7 +92,16 @@ dotnet restore
 dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-android
 ```
 
-CI builds the Android app on every push/PR touching `src/` — see
-`.github/workflows/build-android.yml`. Pushing a semver tag (`v1.2.3`) additionally
-stamps that version into the build (`ApplicationDisplayVersion`/`ApplicationVersion`)
-and publishes the signed APK to a GitHub Release for that tag.
+CI builds Android and Windows (x64 + arm64, unpackaged self-contained) on every push/PR
+touching `src/` — see `.github/workflows/build-android.yml`. Pushing a semver tag (`v1.2.3`)
+additionally stamps that version into the build (`ApplicationDisplayVersion`/
+`ApplicationVersion`) and publishes the signed APK plus both Windows zips to a GitHub Release
+for that tag.
+
+To cut a release, use `scripts/release-tag.sh` rather than tagging by hand — it fetches and
+tags `origin/main` directly instead of your local `main` branch, which is easy to leave stale
+(a plain `git fetch` never moves local `main` forward on its own):
+
+```
+scripts/release-tag.sh v1.2.3
+```
