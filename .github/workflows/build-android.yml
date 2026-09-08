@@ -142,7 +142,11 @@ jobs:
       # installed first. WindowsAppSDKSelfContained=true is the same idea one layer up: WinUI/the
       # Windows App SDK has its own separate runtime from .NET's, and --self-contained alone only
       # bundles the .NET one - without this flag too, the app would still fail to launch on a
-      # machine that never had the Windows App SDK runtime installed.
+      # machine that never had the Windows App SDK runtime installed. PublishReadyToRun=false:
+      # self-contained WinUI publishes default this to true, which needs a R2R runtime pack that
+      # was never restored (the Restore step above doesn't know to fetch it) and fails the build
+      # with NETSDK1094 - simplest fix is to just not ask for that startup-time optimization on
+      # what's a one-off build, not a shipping product.
       - name: Publish (Release, Windows, unpackaged win-x64)
         run: >
           dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
@@ -151,6 +155,7 @@ jobs:
           -r win-x64
           --self-contained
           -p:WindowsAppSDKSelfContained=true
+          -p:PublishReadyToRun=false
           --no-restore
           ${{ steps.version.outputs.msbuild_args }}
 
