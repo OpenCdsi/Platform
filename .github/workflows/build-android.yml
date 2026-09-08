@@ -110,26 +110,6 @@ jobs:
       - name: Install .NET MAUI Windows workload
         run: dotnet workload install maui-windows
 
-      # -p:TargetFramework=..., not -f: combining -f with -r on `dotnet restore` here made the TFM
-      # leak through as a stray positional MSBuild argument instead of being consumed as -f's
-      # value (confirmed by a real CI failure - MSB1008: Only one project can be specified, with
-      # the TFM string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
-      # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
-      #
-      # -p:RuntimeIdentifiers (plural) restores for both win-x64 and win-arm64 in one pass, since
-      # each Publish step below targets a single RID with the singular -r. The ";" is %3B-escaped,
-      # not quoted - confirmed by a real CI failure that quoting alone doesn't help here (MSB1006:
-      # Property is not valid, Switch: win-arm64). MSBuild's own -p:/-property: switch treats an
-      # unescaped ";" as the separator between multiple whole "name=value" properties regardless of
-      # shell quoting, so a literal ";" splits RuntimeIdentifiers=win-x64 and the bare word
-      # win-arm64 into two arguments - the second one isn't shaped like name=value and fails to
-      # parse. %3B is MSBuild's own escape for a semicolon that belongs inside one property's value.
-      - name: Restore
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifiers=win-x64%3Bwin-arm64
-
       # Same version-stamping as the Android job (see its own comment above) - duplicated rather
       # than shared since each job runs on its own isolated runner.
       - name: Determine version from tag
@@ -148,6 +128,25 @@ jobs:
           echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION" >> "$GITHUB_OUTPUT"
 
+      # Restoring both RIDs in one pass (-p:RuntimeIdentifiers=win-x64%3Bwin-arm64, plural property,
+      # %3B-escaped semicolon) reliably hit NETSDK1083 ("RuntimeIdentifier 'win-x64;win-arm64' is
+      # not recognized") - something about this project's combination of an explicit single
+      # -p:TargetFramework and a multi-value RuntimeIdentifiers collapses it back into the singular
+      # RuntimeIdentifier property somewhere in the SDK's own targets. Restoring once per RID next
+      # to its own Publish step instead is the exact pattern already proven working for win-x64
+      # alone - simpler to reason about than chasing that interaction further.
+      #
+      # -p:TargetFramework=..., not -f: combining -f with -r on `dotnet restore` made the TFM leak
+      # through as a stray positional MSBuild argument instead of being consumed as -f's value
+      # (confirmed by a real CI failure - MSB1008: Only one project can be specified, with the TFM
+      # string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
+      # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
+      - name: Restore (win-x64)
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64
+
       # --self-contained, not the framework-dependent default, because WindowsPackageType=None
       # (see the csproj) makes each of these an ordinary folder someone can unzip and run -
       # self-contained means they don't also need the matching .NET runtime installed first.
@@ -155,10 +154,10 @@ jobs:
       # has its own separate runtime from .NET's, and --self-contained alone only bundles the
       # latter - without this flag too, the app would still fail to launch on a machine that never
       # had the Windows App SDK runtime installed. PublishReadyToRun=false: self-contained WinUI
-      # publishes default this to true, which needs a R2R runtime pack per-RID that was never
-      # restored (the Restore step above doesn't ask for it) and fails the build with NETSDK1094 -
-      # simplest fix is to just not ask for that startup-time optimization on what's a one-off
-      # build, not a shipping product.
+      # publishes default this to true, which needs a R2R runtime pack that was never restored
+      # (the Restore step above doesn't ask for it) and fails the build with NETSDK1094 - simplest
+      # fix is to just not ask for that startup-time optimization on what's a one-off build, not a
+      # shipping product.
       - name: Publish (Release, Windows, unpackaged win-x64)
         run: >
           dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
@@ -181,6 +180,12 @@ jobs:
           name: opencdsi-mobile-windows-x64
           path: opencdsi-mobile-win-x64.zip
           if-no-files-found: error
+
+      - name: Restore (win-arm64)
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-arm64
 
       # Same as the win-x64 publish above, just -r win-arm64 - for a native ARM64 Windows VM
       # (e.g. UTM on Apple Silicon), rather than relying on Windows 11's x64 emulation to run the
