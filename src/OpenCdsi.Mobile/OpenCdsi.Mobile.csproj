@@ -1,8 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<!-- Android-only for now; add net10.0-ios/net10.0-maccatalyst/net10.0-windows... back here if/when other platforms are needed. -->
+		<!-- Android and Windows for now; add net10.0-ios/net10.0-maccatalyst back here if/when needed.
+		     The Windows TFM is conditioned on IsOSPlatform('windows') - its tooling (WinUI/Windows App
+		     SDK) isn't available when restoring/building on the Linux CI runner or in this sandbox, so
+		     an unconditioned entry would break `dotnet restore` there even though the Android job only
+		     ever builds `-f net10.0-android` explicitly. -->
 		<TargetFrameworks>net10.0-android</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
 		<OutputType>Exe</OutputType>
 		<RootNamespace>OpenCdsi.Mobile</RootNamespace>
@@ -29,7 +34,14 @@
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
+		<!-- Unpackaged win-x64 exe (self-contained publish), not an MSIX - no Microsoft Store, no
+		     code-signing certificate, no Developer Mode toggle needed to run it. See
+		     https://aka.ms/MauiTemplateUnpackaged if packaged/Store distribution is ever wanted instead. -->
+		<WindowsPackageType>None</WindowsPackageType>
+
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

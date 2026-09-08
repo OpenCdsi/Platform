@@ -1,16 +1,19 @@
-# Builds the app for Android on every push/PR touching src/, plus any push of a semver tag
-# (v1.2.3-style) - which additionally publishes the built APK to a GitHub Release.
+# Builds the app for Android and Windows on every push/PR touching src/, plus any push of a
+# semver tag (v1.2.3-style) - which additionally publishes both builds to a GitHub Release.
 #
-# Needs the real Android SDK (platform android.jar, build-tools), which .NET's workload install
-# fetches from Google's package repository at build time - a GitHub-hosted runner has
-# unrestricted internet for that, unlike some sandboxed/agent dev environments.
+# Android needs the real Android SDK (platform android.jar, build-tools), which .NET's workload
+# install fetches from Google's package repository at build time - a GitHub-hosted runner has
+# unrestricted internet for that, unlike some sandboxed/agent dev environments. Windows needs an
+# actual Windows machine to build (WinUI/Windows App SDK tooling only runs there), which is why
+# build-windows uses windows-latest instead of ubuntu-latest.
 #
-# Also needs read access to this org's GitHub Packages feed to restore OpenCdsi.VaxEngine.Core. The
-# built-in GITHUB_TOKEN only covers packages published from the SAME repo the workflow runs in;
-# OpenCdsi.VaxEngine is published from OpenCdsi/VaxEngine, a different repo, so restoring it here
-# needs a classic PAT with the read:packages scope, stored as the NUGET_READ_PAT repo secret.
+# Both restores need read access to this org's GitHub Packages feed to restore
+# OpenCdsi.VaxEngine.Core. The built-in GITHUB_TOKEN only covers packages published from the SAME
+# repo the workflow runs in; OpenCdsi.VaxEngine is published from OpenCdsi/VaxEngine, a different
+# repo, so restoring it here needs a classic PAT with the read:packages scope, stored as the
+# NUGET_READ_PAT repo secret.
 
-name: Build OpenCdsi Mobile (Android)
+name: Build OpenCdsi Mobile
 
 on:
   push:
@@ -89,8 +92,76 @@ jobs:
           path: src/OpenCdsi.Mobile/bin/Release/net10.0-android/**/*-Signed.apk
           if-no-files-found: error
 
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install .NET MAUI Windows workload
+        run: dotnet workload install maui-windows
+
+      - name: Restore
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-windows10.0.19041.0 -r win-x64
+
+      # Same version-stamping as the Android job (see its own comment above) - duplicated rather
+      # than shared since each job runs on its own isolated runner.
+      - name: Determine version from tag
+        id: version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+
+          if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver version (expected vMAJOR.MINOR.PATCH, e.g. v1.2.3)"
+            exit 1
+          fi
+
+          echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # -r win-x64 --self-contained, not the framework-dependent default, because
+      # WindowsPackageType=None (see the csproj) makes this an ordinary win-x64 folder someone can
+      # unzip and run - self-contained means they don't also need the matching .NET runtime
+      # installed first. WindowsAppSDKSelfContained=true is the same idea one layer up: WinUI/the
+      # Windows App SDK has its own separate runtime from .NET's, and --self-contained alone only
+      # bundles the .NET one - without this flag too, the app would still fail to launch on a
+      # machine that never had the Windows App SDK runtime installed.
+      - name: Publish (Release, Windows, unpackaged win-x64)
+        run: >
+          dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
+          -f net10.0-windows10.0.19041.0
+          -c Release
+          -r win-x64
+          --self-contained
+          -p:WindowsAppSDKSelfContained=true
+          --no-restore
+          ${{ steps.version.outputs.msbuild_args }}
+
+      - name: Zip published app
+        shell: pwsh
+        run: Compress-Archive -Path "src/OpenCdsi.Mobile/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/*" -DestinationPath "opencdsi-mobile-win-x64.zip"
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencdsi-mobile-windows
+          path: opencdsi-mobile-win-x64.zip
+          if-no-files-found: error
+
   release:
-    needs: build-android
+    needs: [build-android, build-windows]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -103,9 +174,17 @@ jobs:
           name: opencdsi-mobile-android
           path: apk
 
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: opencdsi-mobile-windows
+          path: windows
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: apk/**/*-Signed.apk
+          files: |
+            apk/**/*-Signed.apk
+            windows/*.zip

@@ -15,6 +15,19 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		return new Window(new AppShell());
+		var window = new Window(new AppShell());
+
+		// Only takes effect on desktop platforms (Windows, Mac Catalyst) - Android/iOS always fill
+		// the screen regardless. Every page here was built for a phone screen and isn't (yet)
+		// adaptive to a wide window, so the default is portrait-ish rather than a typical desktop
+		// aspect ratio. MinimumWidth/Height keeps it from being squished smaller than the layout can
+		// handle; deliberately no maximum, so the window still resizes freely and Windows' own Snap
+		// can tile it to half a screen the same shape it'd already be at on a phone.
+		window.Width = 420;
+		window.Height = 900;
+		window.MinimumWidth = 380;
+		window.MinimumHeight = 700;
+
+		return window;
 	}
 }
