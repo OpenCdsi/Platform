@@ -107,11 +107,16 @@ jobs:
       - name: Install .NET MAUI Windows workload
         run: dotnet workload install maui-windows
 
+      # -p:TargetFramework=..., not -f: combining -f with -r on `dotnet restore` here made the TFM
+      # leak through as a stray positional MSBuild argument instead of being consumed as -f's
+      # value (confirmed by a real CI failure - MSB1008: Only one project can be specified, with
+      # the TFM string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
+      # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
       - name: Restore
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-windows10.0.19041.0 -r win-x64
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64
 
       # Same version-stamping as the Android job (see its own comment above) - duplicated rather
       # than shared since each job runs on its own isolated runner.
