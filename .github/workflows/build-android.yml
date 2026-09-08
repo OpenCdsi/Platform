@@ -1,11 +1,14 @@
-# Builds the app for Android and Windows on every push/PR touching src/, plus any push of a
-# semver tag (v1.2.3-style) - which additionally publishes both builds to a GitHub Release.
+# Builds the app for Android and Windows (x64 and arm64) on every push/PR touching src/, plus any
+# push of a semver tag (v1.2.3-style) - which additionally publishes every build to a GitHub
+# Release.
 #
 # Android needs the real Android SDK (platform android.jar, build-tools), which .NET's workload
 # install fetches from Google's package repository at build time - a GitHub-hosted runner has
 # unrestricted internet for that, unlike some sandboxed/agent dev environments. Windows needs an
 # actual Windows machine to build (WinUI/Windows App SDK tooling only runs there), which is why
-# build-windows uses windows-latest instead of ubuntu-latest.
+# build-windows uses windows-latest instead of ubuntu-latest. windows-latest is itself x64, but a
+# self-contained win-arm64 publish cross-targets fine from there - the ARM64 runtime pack is just
+# another NuGet package, no ARM64 host or emulation needed to produce it.
 #
 # Both restores need read access to this org's GitHub Packages feed to restore
 # OpenCdsi.VaxEngine.Core. The built-in GITHUB_TOKEN only covers packages published from the SAME
@@ -112,11 +115,16 @@ jobs:
       # value (confirmed by a real CI failure - MSB1008: Only one project can be specified, with
       # the TFM string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
       # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
+      #
+      # -p:RuntimeIdentifiers (plural) restores for both win-x64 and win-arm64 in one pass, since
+      # each Publish step below targets a single RID with the singular -r. The value is quoted -
+      # this step's shell is pwsh (the runner default), where an unquoted ";" would be read as a
+      # statement separator and split the property in two instead of being passed through literally.
       - name: Restore
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 "-p:RuntimeIdentifiers=win-x64;win-arm64"
 
       # Same version-stamping as the Android job (see its own comment above) - duplicated rather
       # than shared since each job runs on its own isolated runner.
@@ -136,17 +144,17 @@ jobs:
           echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION" >> "$GITHUB_OUTPUT"
 
-      # -r win-x64 --self-contained, not the framework-dependent default, because
-      # WindowsPackageType=None (see the csproj) makes this an ordinary win-x64 folder someone can
-      # unzip and run - self-contained means they don't also need the matching .NET runtime
-      # installed first. WindowsAppSDKSelfContained=true is the same idea one layer up: WinUI/the
-      # Windows App SDK has its own separate runtime from .NET's, and --self-contained alone only
-      # bundles the .NET one - without this flag too, the app would still fail to launch on a
-      # machine that never had the Windows App SDK runtime installed. PublishReadyToRun=false:
-      # self-contained WinUI publishes default this to true, which needs a R2R runtime pack that
-      # was never restored (the Restore step above doesn't know to fetch it) and fails the build
-      # with NETSDK1094 - simplest fix is to just not ask for that startup-time optimization on
-      # what's a one-off build, not a shipping product.
+      # --self-contained, not the framework-dependent default, because WindowsPackageType=None
+      # (see the csproj) makes each of these an ordinary folder someone can unzip and run -
+      # self-contained means they don't also need the matching .NET runtime installed first.
+      # WindowsAppSDKSelfContained=true is the same idea one layer up: WinUI/the Windows App SDK
+      # has its own separate runtime from .NET's, and --self-contained alone only bundles the
+      # latter - without this flag too, the app would still fail to launch on a machine that never
+      # had the Windows App SDK runtime installed. PublishReadyToRun=false: self-contained WinUI
+      # publishes default this to true, which needs a R2R runtime pack per-RID that was never
+      # restored (the Restore step above doesn't ask for it) and fails the build with NETSDK1094 -
+      # simplest fix is to just not ask for that startup-time optimization on what's a one-off
+      # build, not a shipping product.
       - name: Publish (Release, Windows, unpackaged win-x64)
         run: >
           dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
@@ -159,15 +167,41 @@ jobs:
           --no-restore
           ${{ steps.version.outputs.msbuild_args }}
 
-      - name: Zip published app
+      - name: Zip win-x64 build
         shell: pwsh
         run: Compress-Archive -Path "src/OpenCdsi.Mobile/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/*" -DestinationPath "opencdsi-mobile-win-x64.zip"
 
-      - name: Upload Windows build
+      - name: Upload win-x64 build
         uses: actions/upload-artifact@v4
         with:
-          name: opencdsi-mobile-windows
+          name: opencdsi-mobile-windows-x64
           path: opencdsi-mobile-win-x64.zip
+          if-no-files-found: error
+
+      # Same as the win-x64 publish above, just -r win-arm64 - for a native ARM64 Windows VM
+      # (e.g. UTM on Apple Silicon), rather than relying on Windows 11's x64 emulation to run the
+      # x64 build.
+      - name: Publish (Release, Windows, unpackaged win-arm64)
+        run: >
+          dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
+          -f net10.0-windows10.0.19041.0
+          -c Release
+          -r win-arm64
+          --self-contained
+          -p:WindowsAppSDKSelfContained=true
+          -p:PublishReadyToRun=false
+          --no-restore
+          ${{ steps.version.outputs.msbuild_args }}
+
+      - name: Zip win-arm64 build
+        shell: pwsh
+        run: Compress-Archive -Path "src/OpenCdsi.Mobile/bin/Release/net10.0-windows10.0.19041.0/win-arm64/publish/*" -DestinationPath "opencdsi-mobile-win-arm64.zip"
+
+      - name: Upload win-arm64 build
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencdsi-mobile-windows-arm64
+          path: opencdsi-mobile-win-arm64.zip
           if-no-files-found: error
 
   release:
@@ -184,10 +218,16 @@ jobs:
           name: opencdsi-mobile-android
           path: apk
 
-      - name: Download Windows build
+      - name: Download win-x64 build
         uses: actions/download-artifact@v4
         with:
-          name: opencdsi-mobile-windows
+          name: opencdsi-mobile-windows-x64
+          path: windows
+
+      - name: Download win-arm64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: opencdsi-mobile-windows-arm64
           path: windows
 
       - name: Publish GitHub Release
