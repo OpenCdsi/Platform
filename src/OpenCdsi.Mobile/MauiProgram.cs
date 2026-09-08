@@ -49,8 +49,8 @@ public static class MauiProgram
 
 		// QuickForecastViewModel is a SINGLETON, not transient — the result page
 		// reads its state directly rather than re-passing DOB/gender/doses through
-		// query parameters. QuickForecastPage.OnAppearing() calls Reset() on it
-		// each time, so state doesn't leak between sessions.
+		// query parameters. See its own comment for where Reset() runs (starting a
+		// new session from the roster, and after a successful "Save as patient").
 		builder.Services.AddSingleton<QuickForecastViewModel>();
 		builder.Services.AddTransient<QuickForecastPage>();
 		builder.Services.AddTransient<QuickForecastResultViewModel>();

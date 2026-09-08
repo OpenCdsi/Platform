@@ -13,9 +13,11 @@ namespace OpenCdsi.Mobile.ViewModels;
 // Registered as a singleton (see MauiProgram.cs) so QuickForecastResultViewModel can
 // read this session's state directly, without a database round trip in
 // between — nothing here is ever persisted unless "Save as patient" is
-// tapped on the result screen. Reset() is called each time the entry page
-// appears so state doesn't leak between one quick-forecast session and the
-// next.
+// tapped on the result screen. Deliberately NOT reset on QuickForecastPage's own OnAppearing -
+// that would wipe a tester's entered doses every time they came back from viewing a forecast
+// result to add another one. Reset() instead runs at the two points that actually mean "this
+// session is over": PatientsViewModel.QuickForecastCommand (starting a new session from the
+// roster) and AddPatientViewModel.SaveAsync's fromQuickForecast branch (successfully saved).
 public partial class QuickForecastViewModel : ObservableObject
 {
     private readonly CvxLookupService _cvxLookup;

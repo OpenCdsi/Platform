@@ -14,11 +14,13 @@ namespace OpenCdsi.Mobile.ViewModels;
 public partial class PatientsViewModel : ObservableObject
 {
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly QuickForecastViewModel _quickForecastSession;
     private List<Patient> _allPatients = new();
 
-    public PatientsViewModel(IDbContextFactory<AppDbContext> dbContextFactory)
+    public PatientsViewModel(IDbContextFactory<AppDbContext> dbContextFactory, QuickForecastViewModel quickForecastSession)
     {
         _dbContextFactory = dbContextFactory;
+        _quickForecastSession = quickForecastSession;
     }
 
     [ObservableProperty]
@@ -30,8 +32,17 @@ public partial class PatientsViewModel : ObservableObject
     partial void OnSearchTextChanged(string value) => ApplyFilter();
 
     [RelayCommand]
-    private static async Task QuickForecastAsync()
-        => await Shell.Current.GoToAsync("quickforecast");
+    private async Task QuickForecastAsync()
+    {
+        // The roster's "Quick forecast" button is the one and only entry point into that flow
+        // (see QuickForecastViewModel's own comment on why it's a singleton) - resetting here,
+        // rather than every time QuickForecastPage appears, is what lets a tester back out to view
+        // a forecast result and return to add another dose without losing what they'd already
+        // entered. The session still gets cleared on a successful "Save as patient"
+        // (AddPatientViewModel.SaveAsync), the other place data from it is meant to go away.
+        _quickForecastSession.Reset();
+        await Shell.Current.GoToAsync("quickforecast");
+    }
 
     [RelayCommand]
     private static async Task AddPatientAsync()
