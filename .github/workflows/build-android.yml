@@ -117,14 +117,18 @@ jobs:
       # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
       #
       # -p:RuntimeIdentifiers (plural) restores for both win-x64 and win-arm64 in one pass, since
-      # each Publish step below targets a single RID with the singular -r. The value is quoted -
-      # this step's shell is pwsh (the runner default), where an unquoted ";" would be read as a
-      # statement separator and split the property in two instead of being passed through literally.
+      # each Publish step below targets a single RID with the singular -r. The ";" is %3B-escaped,
+      # not quoted - confirmed by a real CI failure that quoting alone doesn't help here (MSB1006:
+      # Property is not valid, Switch: win-arm64). MSBuild's own -p:/-property: switch treats an
+      # unescaped ";" as the separator between multiple whole "name=value" properties regardless of
+      # shell quoting, so a literal ";" splits RuntimeIdentifiers=win-x64 and the bare word
+      # win-arm64 into two arguments - the second one isn't shaped like name=value and fails to
+      # parse. %3B is MSBuild's own escape for a semicolon that belongs inside one property's value.
       - name: Restore
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 "-p:RuntimeIdentifiers=win-x64;win-arm64"
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifiers=win-x64%3Bwin-arm64
 
       # Same version-stamping as the Android job (see its own comment above) - duplicated rather
       # than shared since each job runs on its own isolated runner.
