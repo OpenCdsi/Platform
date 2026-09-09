@@ -20,6 +20,22 @@
          consumer (Api/Functions/Demo/external NuGet) - it only adds RID-qualified restore-graph
          entries alongside the existing plain net10.0 one. -->
     <RuntimeIdentifiers>android-arm64;android-x64;win-x64;win-arm64</RuntimeIdentifiers>
+
+    <!-- Follows directly from RuntimeIdentifiers above - confirmed missing by a real local
+         repro (`dotnet build ... -f net10.0-android`, which reproduced the CI failure exactly
+         and iterates in seconds instead of a CI round-trip): the build log shows THREE separate
+         builds of Core - plain net10.0 (succeeds), then net10.0/android-arm64 and
+         net10.0/android-x64 (each fails: MSB3030, "Could not copy ... because it was not
+         found"). Core is a plain library with no AppendRuntimeIdentifierToOutputPath of its own,
+         so even when MSBuild invokes it specifically "for android-arm64," its actual compiled
+         output still lands in the same unqualified obj/Release/net10.0/ folder as always - but
+         the RID-qualified build pass that invoked it expects to find (and copy) the result from
+         obj/Release/net10.0/android-arm64/, which Core never populates. Conditioned on
+         RuntimeIdentifier being set so it's a no-op for every non-RID consumer
+         (Api/Functions/Demo/external NuGet, and Core's own plain net10.0 build for Mobile) -
+         $(RuntimeIdentifier) is empty there, so appending nothing leaves the output path
+         unchanged. -->
+    <AppendRuntimeIdentifierToOutputPath Condition="'$(RuntimeIdentifier)' != ''">true</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <!--
