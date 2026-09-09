@@ -7,6 +7,5 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenCdsi.VaxEngine.Api.Tests/OpenCdsi.VaxEngine.Api.Tests.csproj" />
-    <Project Path="tests/OpenCdsi.VaxEngine.Conformance.Tests/OpenCdsi.VaxEngine.Conformance.Tests.csproj" />
   </Folder>
 </Solution>
