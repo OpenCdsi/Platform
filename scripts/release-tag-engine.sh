@@ -43,5 +43,4 @@ git push origin "$TAG"
 
 echo
 echo "Done. $TAG is at $TARGET_SHA - watch the publish build at:"
-echo "  https://github.com/OpenCdsi/<new-repo-name>/actions"
-echo "  (update this URL once the new repo has its real name)"
+echo "  https://github.com/OpenCdsi/Platform/actions"

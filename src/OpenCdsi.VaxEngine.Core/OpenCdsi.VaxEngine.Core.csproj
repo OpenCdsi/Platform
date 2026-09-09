@@ -37,8 +37,13 @@
     Deliberately doesn't set GeneratePackageOnBuild - `dotnet pack` on demand is the more common,
     less surprising default; regular `dotnet build` runs shouldn't also produce a .nupkg.
 
-    RepositoryUrl/PackageProjectUrl are left out rather than guessed at - add these once the repo
-    has a real, public URL to point to.
+    RepositoryUrl matters for more than metadata: GitHub's NuGet registry (nuget.pkg.github.com)
+    uses it to associate a pushed package with the repo the publishing token is scoped to -
+    without a RepositoryUrl matching the actual repo, GITHUB_TOKEN-based publishing is rejected
+    with a generic, misleading 403 ("could not be authenticated") even when every actual
+    permission (repo Workflow permissions, org Actions policy, org package-creation policy) is
+    already correctly set to allow it - confirmed the hard way via a real, otherwise-unexplained
+    403 on the very first engine-v tag pushed after the repo got its real name.
   -->
   <PropertyGroup>
     <PackageId>OpenCdsi.VaxEngine.Core</PackageId>
@@ -48,6 +53,9 @@
     <PackageTags>CDSi;immunization;vaccine;vaccination;forecasting;CDC;healthcare;clinical-decision-support</PackageTags>
     <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
     <Copyright>Copyright (c) 2026 Dennis Dunn</Copyright>
+    <RepositoryUrl>https://github.com/OpenCdsi/Platform</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/OpenCdsi/Platform</PackageProjectUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591 ("missing XML comment for publicly visible type or member") and CS1573
          ("parameter has no matching param tag, but other parameters do") are both suppressed
