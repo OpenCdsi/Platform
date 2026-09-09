@@ -58,34 +58,19 @@ jobs:
       - name: Install .NET MAUI Android workload
         run: dotnet workload install maui-android
 
-      # -c Release -f net10.0-android, matching the Build step below exactly: the .NET Android
-      # workload only pulls in its default multi-ABI RuntimeIdentifiers (android-arm64,
-      # android-x64, ...) for Release builds, not Debug. A bare `dotnet restore` with no
-      # -c/-f (the previous version of this step) restores Debug's simpler, RID-less graph, then
-      # the Release build below needs the RID-specific one that was never captured - confirmed by
-      # a real CI failure: NETSDK1047, "Assets file ... doesn't have a target for
-      # 'net10.0/android-arm64'" on OpenCdsi.VaxEngine.Core specifically (only surfaced once Core
-      # became a live ProjectReference in this migration - a compiled NuGet package never needed
-      # this cross-project RID negotiation at all). No -r here since the RID list itself is
-      # implicit/default for Release, not manually chosen - so this doesn't hit the documented
-      # -f-plus-r `dotnet restore` bug worked around in the Windows job below.
-      #
-      # -p:Configuration=Release, not the -c shorthand: a real CI failure on SDK 10.0.401
-      # (MSB1001, "Unknown switch" - the actual MSBuild invocation shown in the error had "-c
-      # Release net10.0-android" with -f itself missing, net10.0-android sitting as a bare
-      # positional argument) showed that -c and -f adjacent as two separate "-x value" pairs
-      # aren't reliably parsed together on this SDK version. Switching -c to -p:Configuration=
-      # fixed HALF of that (Configuration now parses correctly as a property) but not the other
-      # half - a FOLLOW-UP real CI failure (MSB1008, "Only one project can be specified") showed
-      # `-f net10.0-android` (still space-separated, flag then value as two tokens) continuing to
-      # drop its value regardless of what else surrounds it. The real pattern isn't flag
-      # adjacency - it's that ANY two-token "flag value" form is unreliable on this SDK version
-      # for `dotnet restore` specifically (build/publish are unaffected - confirmed working with
-      # the identical two-token -f form throughout every prior log). -f:net10.0-android below
-      # (colon-attached, one token, same syntax that already made -p:Configuration=Release work)
-      # sidesteps it the same way.
-      - name: Restore
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f:net10.0-android -p:Configuration=Release
+      # No separate Restore step - genuinely doesn't work. Every fix attempted here (matching -c/-f,
+      # -p:Configuration= instead of -c, -f:value instead of -f value) was reshuffling HOW an
+      # option got passed to the standalone `dotnet restore` verb, without ever addressing the
+      # real cause: `dotnet restore` (as its own command, not build/publish/run's own implicit
+      # restore) does not support -f/--framework in ANY form - confirmed by repeated real CI
+      # failures where -p:Configuration=Release consistently parsed correctly as a property, but
+      # -f's value was consistently dropped and left as a bare positional argument regardless of
+      # syntax (space-separated, colon-attached). This was never caught locally because every
+      # local test used a single combined `dotnet build -f net10.0-android` (implicit restore,
+      # where -f genuinely IS supported), never the CI's actual two-step "separate restore, then
+      # --no-restore build" structure - two different code paths, only one of which was ever
+      # actually exercised. Dropping --no-restore below lets Build do its own correct implicit
+      # restore instead, matching the one pattern with real, repeated proof of working.
 
       # Only produces output on a tag push (empty otherwise, so a plain push/PR build keeps
       # using the ApplicationDisplayVersion/ApplicationVersion already in the csproj). Expects
@@ -122,7 +107,6 @@ jobs:
           dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
           -c Release
           -f net10.0-android
-          --no-restore
           ${{ steps.version.outputs.msbuild_args }}
 
       - name: Upload APK
@@ -165,40 +149,19 @@ jobs:
           echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION" >> "$GITHUB_OUTPUT"
 
-      # History of what this restore step took to get right, since two different combinations
-      # were tried and failed before landing here - worth knowing so a future reader doesn't
-      # repeat either:
+      # No separate Restore step, for the same reason as the Android job (see its own comment):
+      # the standalone `dotnet restore` verb doesn't support -f/--framework in any form - every
+      # combination tried here (raw -p:TargetFramework=, -r, -f space-separated, -f colon-attached,
+      # -p:RestoreUseStaticGraphEvaluation=false, restoring once vs per-RID) was fighting symptoms
+      # of that same underlying gap, documented in this job's own git history for anyone tracing
+      # back through it. `dotnet publish` below (not the standalone restore verb) DOES fully
+      # support -f combined with -r - that's completely standard for a self-contained publish -
+      # so dropping --no-restore and letting each Publish invocation do its own correct implicit
+      # restore sidesteps the entire problem, matching the one pattern with real, repeated proof
+      # of working (Android's build). Each Publish now restores separately rather than sharing one
+      # upfront restore - slightly slower, but correct beats fast here given how long incorrect
+      # took to actually diagnose.
       #
-      # 1. Restoring both RIDs in one pass via -p:RuntimeIdentifiers=win-x64%3Bwin-arm64 (plural
-      #    property, %3B-escaped semicolon) combined with an explicit -p:TargetFramework=... hit
-      #    NETSDK1083 ("RuntimeIdentifier 'win-x64;win-arm64' is not recognized") - something
-      #    about combining an explicit single TargetFramework with a multi-value
-      #    RuntimeIdentifiers, BOTH as raw command-line property overrides, collapses it back into
-      #    a singular RuntimeIdentifier property somewhere in the SDK's own targets.
-      #
-      # 2. Restoring once per RID next to its own Publish step, using -p:TargetFramework=... -r
-      #    <rid> (not -f - combining -f with -r on `dotnet restore` separately hit MSB1008, "Only
-      #    one project can be specified", the TFM leaking through as a stray positional MSBuild
-      #    argument) - avoided both of the above, but hit a THIRD problem: restore's raw
-      #    -p:TargetFramework= override still leaked into Core's own restore (NETSDK1005,
-      #    "doesn't have a target for 'net10.0'") even with Mobile.csproj's ProjectReference
-      #    GlobalPropertiesToRemove correctly fixing the identical leak for Android's build/publish
-      #    - and even with -p:RestoreUseStaticGraphEvaluation=false, which didn't help either.
-      #
-      # What actually works: this is the SAME pattern already proven for Android's restore (see
-      # that job's own Restore step) - just `-f <TFM>`, no -r, no raw -p:TargetFramework=/
-      # -p:RuntimeIdentifiers= overrides at all. RID awareness comes entirely from
-      # Mobile.csproj's own declared, TFM-conditioned RuntimeIdentifiers property instead of any
-      # CLI-level override - the two prior failures both involved raw CLI property overrides
-      # fighting each other or leaking into Core's restore; this avoids that whole class of
-      # problem by not using them. One restore now covers both win-x64 and win-arm64, same as
-      # Android's one restore already covers both android-arm64 and android-x64.
-      - name: Restore
-        # -f:net10.0-windows10.0.19041.0, not space-separated: see the Android job's own Restore
-        # step comment for why - the same two-token "-f value" form drops its value on this SDK
-        # version for `dotnet restore` specifically, confirmed there via a real CI failure.
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f:net10.0-windows10.0.19041.0 -p:Configuration=Release
-
       # --self-contained, not the framework-dependent default, because WindowsPackageType=None
       # (see the csproj) makes each of these an ordinary folder someone can unzip and run -
       # self-contained means they don't also need the matching .NET runtime installed first.
@@ -206,10 +169,9 @@ jobs:
       # has its own separate runtime from .NET's, and --self-contained alone only bundles the
       # latter - without this flag too, the app would still fail to launch on a machine that never
       # had the Windows App SDK runtime installed. PublishReadyToRun=false: self-contained WinUI
-      # publishes default this to true, which needs a R2R runtime pack that was never restored
-      # (the Restore step above doesn't ask for it) and fails the build with NETSDK1094 - simplest
-      # fix is to just not ask for that startup-time optimization on what's a one-off build, not a
-      # shipping product.
+      # publishes default this to true, which needs a R2R runtime pack this implicit restore
+      # doesn't ask for, and fails the build with NETSDK1094 - simplest fix is to just not ask for
+      # that startup-time optimization on what's a one-off build, not a shipping product.
       - name: Publish (Release, Windows, unpackaged win-x64)
         run: >
           dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
@@ -219,7 +181,6 @@ jobs:
           --self-contained
           -p:WindowsAppSDKSelfContained=true
           -p:PublishReadyToRun=false
-          --no-restore
           ${{ steps.version.outputs.msbuild_args }}
 
       - name: Zip win-x64 build
@@ -235,8 +196,8 @@ jobs:
 
       # Same as the win-x64 publish above, just -r win-arm64 - for a native ARM64 Windows VM
       # (e.g. UTM on Apple Silicon), rather than relying on Windows 11's x64 emulation to run the
-      # x64 build. No separate restore needed here - the single combined Restore step above
-      # already covers both win-x64 and win-arm64.
+      # x64 build. Its own implicit restore too, same reasoning as win-x64's above - no shared
+      # upfront restore step exists anymore.
       - name: Publish (Release, Windows, unpackaged win-arm64)
         run: >
           dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
@@ -246,7 +207,6 @@ jobs:
           --self-contained
           -p:WindowsAppSDKSelfContained=true
           -p:PublishReadyToRun=false
-          --no-restore
           ${{ steps.version.outputs.msbuild_args }}
 
       - name: Zip win-arm64 build
