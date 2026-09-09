@@ -164,7 +164,19 @@ jobs:
       # string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
       # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
       - name: Restore (win-x64)
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64
+        # -p:RestoreUseStaticGraphEvaluation=false is required, not optional - restore's default
+        # static-graph evaluation computes its own inferred global properties per ProjectReference
+        # node independently of GlobalPropertiesToRemove (a real MSBuild issue: "the reference was
+        # called with global properties that do not match the static graph inferred nodes" -
+        # dotnet/msbuild#6856), so the raw -p:TargetFramework= below still leaked into Core's
+        # restore even after Mobile.csproj's ProjectReference GlobalPropertiesToRemove correctly
+        # fixed the same leak for normal build/publish target execution - confirmed by a real CI
+        # failure at the later publish step (--no-restore, using this step's already-broken
+        # output): NETSDK1005, "doesn't have a target for 'net10.0'", identical to the original
+        # bug this whole ProjectReference saga started from. Slower (falls back to the older,
+        # non-static-graph restore path) but correct - this repo's restore graph is small enough
+        # that the cost is negligible.
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64 -p:RestoreUseStaticGraphEvaluation=false
 
       # --self-contained, not the framework-dependent default, because WindowsPackageType=None
       # (see the csproj) makes each of these an ordinary folder someone can unzip and run -
@@ -201,7 +213,9 @@ jobs:
           if-no-files-found: error
 
       - name: Restore (win-arm64)
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-arm64
+        # See the win-x64 Restore step's own comment above for why
+        # -p:RestoreUseStaticGraphEvaluation=false is required here too.
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-arm64 -p:RestoreUseStaticGraphEvaluation=false
 
       # Same as the win-x64 publish above, just -r win-arm64 - for a native ARM64 Windows VM
       # (e.g. UTM on Apple Silicon), rather than relying on Windows 11's x64 emulation to run the
