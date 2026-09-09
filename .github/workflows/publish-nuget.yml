@@ -13,6 +13,13 @@
 # Note this package is now purely for external consumers - this repo's own Mobile app references
 # Core via a same-repo ProjectReference instead, so it doesn't depend on this publish step at all.
 #
+# Core.csproj no longer hardcodes <Version> - MinVer (see its csproj) computes it from this same
+# engine-v* tag at build/pack time, so there's nothing to keep in sync by hand. This workflow
+# still does its own tag validation up front (see below) purely as an early, clear failure for a
+# malformed tag, and still checks the packed .nupkg's filename against the tag afterward as a
+# safety net in case MinVer somehow computed something different (e.g. a misconfigured checkout
+# that didn't actually fetch tags).
+#
 # Two safety checks run BEFORE anything gets built or published, since a wrong version number or
 # a tag placed on the wrong branch is much harder to undo once a package is live on the registry
 # than it would be to catch here first:
@@ -45,7 +52,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history needed for the "is this tag reachable from main" check below
+          fetch-depth: 0 # full history AND tags needed - both for the "is this tag reachable
+                          # from main" check below, and for MinVer to see engine-v* tags at all
 
       - name: Validate tag is real semver
         id: version
@@ -61,7 +69,7 @@ jobs:
           fi
           VERSION="${TAG#engine-v}" # NuGet's own Version property doesn't take the "engine-v" prefix
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Validated tag $TAG -> package version $VERSION"
+          echo "Validated tag $TAG -> expecting package version $VERSION (MinVer computes this independently at pack time - verified below)"
 
       - name: Verify tag is reachable from main
         run: |
@@ -85,8 +93,17 @@ jobs:
           dotnet pack src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj
           -c Release
           -o ./artifacts
-          -p:Version=${{ steps.version.outputs.version }}
           --no-restore
+
+      - name: Verify packed version matches tag
+        run: |
+          EXPECTED="./artifacts/OpenCdsi.VaxEngine.Core.${{ steps.version.outputs.version }}.nupkg"
+          if [ ! -f "$EXPECTED" ]; then
+            echo "::error::Expected $EXPECTED not found - MinVer's computed version doesn't match tag ${GITHUB_REF_NAME}. This usually means tags weren't fully fetched. Contents of ./artifacts:"
+            ls ./artifacts
+            exit 1
+          fi
+          echo "Confirmed: $EXPECTED"
 
       - name: Push to GitHub Packages
         run: >

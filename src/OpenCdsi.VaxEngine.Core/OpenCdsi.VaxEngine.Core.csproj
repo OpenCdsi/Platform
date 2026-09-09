@@ -9,9 +9,12 @@
   </PropertyGroup>
 
   <!--
-    NuGet packaging metadata. Version matches the git tag already placed on main (v1.2.0) -
-    kept in sync manually for now (bump this alongside the next tag), not auto-derived from git,
-    since this project doesn't yet have a versioning tool wired into the build.
+    NuGet packaging metadata. Version is auto-derived from git tags by MinVer (see the
+    PackageReference below) rather than hand-maintained - MinVerTagPrefix="engine-v" means it
+    only ever looks at this repo's engine-v* tags (this is a monorepo; mobile-v* tags are
+    correctly ignored). On the exact tagged commit this resolves to a clean X.Y.Z; on any commit
+    past the last tag it computes a height-based prerelease (e.g. 2.0.1-alpha.0.4), so local/dev
+    builds still get a sane, unique version with nothing to remember to bump by hand.
 
     License is MPL-2.0, confirmed directly against the real LICENSE file at the repo root and
     every source file's own header (both agree) - not assumed from the header comment alone.
@@ -24,7 +27,7 @@
   -->
   <PropertyGroup>
     <PackageId>OpenCdsi.VaxEngine.Core</PackageId>
-    <Version>1.2.0</Version>
+    <MinVerTagPrefix>engine-v</MinVerTagPrefix>
     <Authors>Dennis Dunn</Authors>
     <Description>A .NET implementation of the CDC's CDSi (Clinical Decision Support for Immunization) Logic Specification v4.6. Given a patient's vaccination history, determines their immunization forecast - which doses are valid, due, past due, or complete - against the CDC's own reference data. Reference data (antigen schedules, series definitions) is supplied externally at runtime rather than bundled into the package, so a new CDC schedule drop doesn't require a new package release.</Description>
     <PackageTags>CDSi;immunization;vaccine;vaccination;forecasting;CDC;healthcare;clinical-decision-support</PackageTags>
@@ -45,5 +48,16 @@
          content just to silence the compiler, not genuinely better documentation. -->
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Build-time only (PrivateAssets=All) - computes Version/PackageVersion/AssemblyVersion
+         etc. from git tags/history, doesn't ship as a runtime dependency of the package itself.
+         Needs full git history to see tags (fetch-depth: 0 in CI - already set in
+         publish-nuget.yml for its own separate "is this tag reachable from main" check, so no
+         extra CI change needed here) and needs an actual .git directory - the plain source
+         archive this migration handed off as a .tar.gz does include .git, so this works
+         out of the box once restored. -->
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+  </ItemGroup>
 
 </Project>
