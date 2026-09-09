@@ -74,16 +74,18 @@ jobs:
       # (MSB1001, "Unknown switch" - the actual MSBuild invocation shown in the error had "-c
       # Release net10.0-android" with -f itself missing, net10.0-android sitting as a bare
       # positional argument) showed that -c and -f adjacent as two separate "-x value" pairs
-      # aren't reliably parsed together on this SDK version - the same general class of bug as
-      # the documented -f-plus-r one below, just a different flag pair. This never reproduced
-      # locally on SDK 10.0.400, only in CI on 10.0.401 - a patch-version difference in the CLI's
-      # own argument parsing. -p:Configuration=Release is one token, not two adjacent ones, so it
-      # doesn't hit the same adjacency issue, and unlike -p:TargetFramework= (which leaks into
-      # Core's own restore - see the Windows job's history below), a leaked Configuration is
-      # harmless: it only affects compiler switches, not which restore-graph target gets
-      # resolved, so it can't reintroduce that class of problem.
+      # aren't reliably parsed together on this SDK version. Switching -c to -p:Configuration=
+      # fixed HALF of that (Configuration now parses correctly as a property) but not the other
+      # half - a FOLLOW-UP real CI failure (MSB1008, "Only one project can be specified") showed
+      # `-f net10.0-android` (still space-separated, flag then value as two tokens) continuing to
+      # drop its value regardless of what else surrounds it. The real pattern isn't flag
+      # adjacency - it's that ANY two-token "flag value" form is unreliable on this SDK version
+      # for `dotnet restore` specifically (build/publish are unaffected - confirmed working with
+      # the identical two-token -f form throughout every prior log). -f:net10.0-android below
+      # (colon-attached, one token, same syntax that already made -p:Configuration=Release work)
+      # sidesteps it the same way.
       - name: Restore
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-android -p:Configuration=Release
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f:net10.0-android -p:Configuration=Release
 
       # Only produces output on a tag push (empty otherwise, so a plain push/PR build keeps
       # using the ApplicationDisplayVersion/ApplicationVersion already in the csproj). Expects
@@ -192,10 +194,10 @@ jobs:
       # problem by not using them. One restore now covers both win-x64 and win-arm64, same as
       # Android's one restore already covers both android-arm64 and android-x64.
       - name: Restore
-        # -p:Configuration=Release, not -c: see the Android job's own Restore step comment for
-        # why - the same -c/-f adjacency parsing issue (confirmed there via a real CI failure on
-        # SDK 10.0.401) would very likely hit this identical two-token pattern here too.
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-windows10.0.19041.0 -p:Configuration=Release
+        # -f:net10.0-windows10.0.19041.0, not space-separated: see the Android job's own Restore
+        # step comment for why - the same two-token "-f value" form drops its value on this SDK
+        # version for `dotnet restore` specifically, confirmed there via a real CI failure.
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f:net10.0-windows10.0.19041.0 -p:Configuration=Release
 
       # --self-contained, not the framework-dependent default, because WindowsPackageType=None
       # (see the csproj) makes each of these an ordinary folder someone can unzip and run -
