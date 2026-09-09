@@ -1,0 +1,249 @@
+# Builds the app for Android and Windows (x64 and arm64) on every push/PR touching src/, plus any
+# push of a semver tag (v1.2.3-style) - which additionally publishes every build to a GitHub
+# Release.
+#
+# Android needs the real Android SDK (platform android.jar, build-tools), which .NET's workload
+# install fetches from Google's package repository at build time - a GitHub-hosted runner has
+# unrestricted internet for that, unlike some sandboxed/agent dev environments. Windows needs an
+# actual Windows machine to build (WinUI/Windows App SDK tooling only runs there), which is why
+# build-windows uses windows-latest instead of ubuntu-latest. windows-latest is itself x64, but a
+# self-contained win-arm64 publish cross-targets fine from there - the ARM64 runtime pack is just
+# another NuGet package, no ARM64 host or emulation needed to produce it.
+#
+# Both restores need read access to this org's GitHub Packages feed to restore
+# OpenCdsi.VaxEngine.Core. The built-in GITHUB_TOKEN only covers packages published from the SAME
+# repo the workflow runs in; OpenCdsi.VaxEngine is published from OpenCdsi/VaxEngine, a different
+# repo, so restoring it here needs a classic PAT with the read:packages scope, stored as the
+# NUGET_READ_PAT repo secret.
+
+name: Build OpenCdsi Mobile
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install .NET MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Restore
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
+
+      # Only produces output on a tag push (empty otherwise, so a plain push/PR build keeps
+      # using the ApplicationDisplayVersion/ApplicationVersion already in the csproj). Expects
+      # tags shaped like v1.2.3 (a leading "v" plus MAJOR.MINOR.PATCH; a trailing -prerelease or
+      # +build suffix is accepted and kept in the display version, just not the version code).
+      # The push-tags filter above only loosely matches "v*.*.*" - this is the real, strict
+      # semver check, and fails the build with a clear error on anything that doesn't match.
+      - name: Determine version from tag
+        id: version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+
+          if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver version (expected vMAJOR.MINOR.PATCH, e.g. v1.2.3)"
+            exit 1
+          fi
+
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+
+          # Android's versionCode must be a strictly increasing integer between releases - not
+          # the semver string itself. Packs MAJOR/MINOR/PATCH into one int (assumes MINOR and
+          # PATCH each stay under 100, which is the usual case); revisit if that ever binds.
+          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+
+          echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION /p:ApplicationVersion=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Build (Release, Android)
+        run: >
+          dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
+          -c Release
+          -f net10.0-android
+          --no-restore
+          ${{ steps.version.outputs.msbuild_args }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencdsi-mobile-android
+          path: src/OpenCdsi.Mobile/bin/Release/net10.0-android/**/*-Signed.apk
+          if-no-files-found: error
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install .NET MAUI Windows workload
+        run: dotnet workload install maui-windows
+
+      # Same version-stamping as the Android job (see its own comment above) - duplicated rather
+      # than shared since each job runs on its own isolated runner.
+      - name: Determine version from tag
+        id: version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+
+          if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver version (expected vMAJOR.MINOR.PATCH, e.g. v1.2.3)"
+            exit 1
+          fi
+
+          echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # Restoring both RIDs in one pass (-p:RuntimeIdentifiers=win-x64%3Bwin-arm64, plural property,
+      # %3B-escaped semicolon) reliably hit NETSDK1083 ("RuntimeIdentifier 'win-x64;win-arm64' is
+      # not recognized") - something about this project's combination of an explicit single
+      # -p:TargetFramework and a multi-value RuntimeIdentifiers collapses it back into the singular
+      # RuntimeIdentifier property somewhere in the SDK's own targets. Restoring once per RID next
+      # to its own Publish step instead is the exact pattern already proven working for win-x64
+      # alone - simpler to reason about than chasing that interaction further.
+      #
+      # -p:TargetFramework=..., not -f: combining -f with -r on `dotnet restore` made the TFM leak
+      # through as a stray positional MSBuild argument instead of being consumed as -f's value
+      # (confirmed by a real CI failure - MSB1008: Only one project can be specified, with the TFM
+      # string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
+      # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
+      - name: Restore (win-x64)
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64
+
+      # --self-contained, not the framework-dependent default, because WindowsPackageType=None
+      # (see the csproj) makes each of these an ordinary folder someone can unzip and run -
+      # self-contained means they don't also need the matching .NET runtime installed first.
+      # WindowsAppSDKSelfContained=true is the same idea one layer up: WinUI/the Windows App SDK
+      # has its own separate runtime from .NET's, and --self-contained alone only bundles the
+      # latter - without this flag too, the app would still fail to launch on a machine that never
+      # had the Windows App SDK runtime installed. PublishReadyToRun=false: self-contained WinUI
+      # publishes default this to true, which needs a R2R runtime pack that was never restored
+      # (the Restore step above doesn't ask for it) and fails the build with NETSDK1094 - simplest
+      # fix is to just not ask for that startup-time optimization on what's a one-off build, not a
+      # shipping product.
+      - name: Publish (Release, Windows, unpackaged win-x64)
+        run: >
+          dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
+          -f net10.0-windows10.0.19041.0
+          -c Release
+          -r win-x64
+          --self-contained
+          -p:WindowsAppSDKSelfContained=true
+          -p:PublishReadyToRun=false
+          --no-restore
+          ${{ steps.version.outputs.msbuild_args }}
+
+      - name: Zip win-x64 build
+        shell: pwsh
+        run: Compress-Archive -Path "src/OpenCdsi.Mobile/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/*" -DestinationPath "opencdsi-mobile-win-x64.zip"
+
+      - name: Upload win-x64 build
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencdsi-mobile-windows-x64
+          path: opencdsi-mobile-win-x64.zip
+          if-no-files-found: error
+
+      - name: Restore (win-arm64)
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-arm64
+
+      # Same as the win-x64 publish above, just -r win-arm64 - for a native ARM64 Windows VM
+      # (e.g. UTM on Apple Silicon), rather than relying on Windows 11's x64 emulation to run the
+      # x64 build.
+      - name: Publish (Release, Windows, unpackaged win-arm64)
+        run: >
+          dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
+          -f net10.0-windows10.0.19041.0
+          -c Release
+          -r win-arm64
+          --self-contained
+          -p:WindowsAppSDKSelfContained=true
+          -p:PublishReadyToRun=false
+          --no-restore
+          ${{ steps.version.outputs.msbuild_args }}
+
+      - name: Zip win-arm64 build
+        shell: pwsh
+        run: Compress-Archive -Path "src/OpenCdsi.Mobile/bin/Release/net10.0-windows10.0.19041.0/win-arm64/publish/*" -DestinationPath "opencdsi-mobile-win-arm64.zip"
+
+      - name: Upload win-arm64 build
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencdsi-mobile-windows-arm64
+          path: opencdsi-mobile-win-arm64.zip
+          if-no-files-found: error
+
+  release:
+    needs: [build-android, build-windows]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: opencdsi-mobile-android
+          path: apk
+
+      - name: Download win-x64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: opencdsi-mobile-windows-x64
+          path: windows
+
+      - name: Download win-arm64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: opencdsi-mobile-windows-arm64
+          path: windows
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            apk/**/*-Signed.apk
+            windows/*.zip
