@@ -8,47 +8,19 @@
     <LangVersion>12</LangVersion>
 
     <!-- Required for Mobile to build for Android/Windows since Core became a ProjectReference
-         (was a NuGet package): confirmed by a real CI failure (NETSDK1047, "doesn't have a
-         target for 'net10.0/android-arm64'") that declaring RuntimeIdentifiers on Mobile.csproj
-         ALONE is not enough - Core's own project.assets.json still lacked the RID-qualified
-         section even though Core built successfully (plain net10.0) in the same run. NuGet's
-         RID-aware restore graph does not auto-generate a compatible entry for a referenced
-         project that declares no RuntimeIdentifiers of its own (an earlier, wrong assumption
-         behind the Mobile-only fix) - each project in the graph needs matching RIDs declared
-         directly for its own assets.json to gain that RID-qualified section at all. Core has no
+         (was a NuGet package): a referenced project needs its own matching RuntimeIdentifiers
+         declared for NuGet's RID-aware restore graph to produce a RID-qualified section for it
+         at all (confirmed by a real CI failure, NETSDK1047 - see Mobile.csproj's ProjectReference
+         comment for the full history of what this took to actually get right). Core has no
          native/platform-specific code, so this doesn't change its actual compiled output for any
          consumer (Api/Functions/Demo/external NuGet) - it only adds RID-qualified restore-graph
-         entries alongside the existing plain net10.0 one. -->
+         entries alongside the existing plain net10.0 one. Mobile's own ProjectReference to Core
+         strips RuntimeIdentifier from what actually reaches Core at BUILD time (a real, open,
+         currently-unresolved Microsoft SDK bug otherwise causes Core to be asked to build
+         per-RID, which - being a plain library with none of the RID-specific output-path
+         machinery an app project has - fails; see Mobile.csproj for the full story and search
+         terms), so this declaration only ever affects restore, never an actual build. -->
     <RuntimeIdentifiers>android-arm64;android-x64;win-x64;win-arm64</RuntimeIdentifiers>
-
-    <!-- Follows directly from RuntimeIdentifiers above - confirmed missing by a real local
-         repro (`dotnet build ... -f net10.0-android`, which reproduced the CI failure exactly
-         and iterates in seconds instead of a CI round-trip): the build log shows THREE separate
-         builds of Core - plain net10.0 (succeeds), then net10.0/android-arm64 and
-         net10.0/android-x64 (each fails: MSB3030, "Could not copy ... because it was not
-         found"). Core is a plain library with no AppendRuntimeIdentifierToOutputPath of its own,
-         so even when MSBuild invokes it specifically "for android-arm64," its actual compiled
-         output still lands in the same unqualified obj/Release/net10.0/ folder as always - but
-         the RID-qualified build pass that invoked it expects to find (and copy) the result from
-         obj/Release/net10.0/android-arm64/, which Core never populates. Conditioned on
-         RuntimeIdentifier being set so it's a no-op for every non-RID consumer
-         (Api/Functions/Demo/external NuGet, and Core's own plain net10.0 build for Mobile) -
-         $(RuntimeIdentifier) is empty there, so appending nothing leaves the output path
-         unchanged. -->
-    <AppendRuntimeIdentifierToOutputPath Condition="'$(RuntimeIdentifier)' != ''">true</AppendRuntimeIdentifierToOutputPath>
-
-    <!-- AppendRuntimeIdentifierToOutputPath above only affects OutputPath (bin) - confirmed by a
-         real local repro with `-v:d` verbose logging (much faster to iterate than a CI
-         round-trip): the log shows bin/Release/net10.0/android-arm64/... being correctly
-         referenced (an expected-not-yet-exists deps.json check), while the actual MSB3030
-         failure is obj/Release/net10.0/android-arm64/OpenCdsi.VaxEngine.Core.dll "not found" -
-         the OBJ (intermediate) path was NOT similarly RID-qualified, so CoreCompile wrote its
-         output to the plain obj/Release/net10.0/ folder while the later copy step looked for it
-         at the RID-qualified one. A known SDK gap: AppendRuntimeIdentifierToOutputPath doesn't
-         also cover IntermediateOutputPath, so it needs its own explicit override here, appended
-         onto whatever IntermediateOutputPath already resolved to (respecting the SDK's own
-         default Configuration+TargetFramework nesting) rather than reconstructed from scratch. -->
-    <IntermediateOutputPath Condition="'$(RuntimeIdentifier)' != ''">$(IntermediateOutputPath)$(RuntimeIdentifier)\</IntermediateOutputPath>
   </PropertyGroup>
 
   <!--

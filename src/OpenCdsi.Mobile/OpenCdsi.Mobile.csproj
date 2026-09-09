@@ -90,8 +90,8 @@
 		     repo as Core, a plain ProjectReference always builds against current Engine source -
 		     no version bump/publish/PAT dance needed for day-to-day work.
 
-		     GlobalPropertiesToRemove="TargetFramework" is required, not cosmetic - history below,
-		     since this went through two wrong attempts before landing here:
+		     GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" is required, not cosmetic
+		     - history below, since this went through several wrong attempts before landing here:
 
 		     1. The Windows CI job restores this project with a raw `-p:TargetFramework=
 		        net10.0-windows10.0.19041.0` MSBuild property (not `-f` - combining `-f` with `-r`
@@ -102,25 +102,39 @@
 		        NETSDK1005, "doesn't have a target for 'net10.0'". Never came up while Core was a
 		        compiled NuGet package - only once it became a live ProjectReference.
 
-		     2. First fix attempt: SetTargetFramework="TargetFramework=net10.0" on this reference,
+		     2. Fix attempt: SetTargetFramework="TargetFramework=net10.0" on this reference,
 		        pinning it to plain net10.0 regardless of any ambient override. Fixed Windows, but
-		        broke Android once Core also gained RuntimeIdentifiers (needed separately - Android
-		        needs per-ABI native output even for `dotnet build`, and a referenced project needs
-		        its own matching RuntimeIdentifiers declared for NuGet's RID-aware restore graph to
-		        produce a RID-qualified section for it at all). The pin unconditionally forced this
-		        reference to build RID-LESS regardless of platform, so Android's build - now
-		        correctly expecting Core's RID-qualified output (obj/.../android-arm64/...) - found
-		        only the plain, unqualified build and failed: MSB3030, "Could not copy ... because
-		        it was not found."
+		        broke Android once Core also gained RuntimeIdentifiers (added to fix a SEPARATE
+		        NETSDK1047 - a referenced project needs its own matching RuntimeIdentifiers
+		        declared for NuGet's RID-aware restore graph to produce a RID-qualified section for
+		        it at all). The pin unconditionally forced this reference to build RID-LESS
+		        regardless of platform, so Android's build - now correctly expecting Core's
+		        RID-qualified output - found only the plain, unqualified build: MSB3030,
+		        "Could not copy ... because it was not found."
 
-		     3. GlobalPropertiesToRemove strips the incoming global TargetFramework property for
-		        THIS reference specifically, rather than overriding it with a fixed replacement -
-		        it fixes the original Windows leak (Core's own declared TargetFramework governs its
-		        evaluation again, unaffected by the CLI's global property) without pinning away
-		        RID context, so the SDK's normal per-reference TFM/RID negotiation - which now
-		        correctly produces RID-qualified output for Android/Windows since Core declares
-		        matching RuntimeIdentifiers - isn't overridden into a fixed, RID-less shape. -->
-		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" GlobalPropertiesToRemove="TargetFramework" />
+		     3. Fix attempt: GlobalPropertiesToRemove="TargetFramework" alone (strip the leak
+		        rather than pin an override). Fixed Windows without re-breaking Android's TFM
+		        selection, but the SAME MSB3030 persisted - a local repro (much faster than CI:
+		        `dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -c Release -f
+		        net10.0-android`) plus `-v:d` verbose logging showed Core's RID-specific build pass
+		        DOES run, but writes its output to the plain obj/bin path while the SDK's own copy
+		        step looks for it at a RID-qualified one - Core has no AppendRuntimeIdentifierToOutputPath
+		        of its own. Adding that (and a matching IntermediateOutputPath override) only made
+		        it worse - a malformed, doubled path (android-arm64/net10.0/android-arm64/...) -
+		        revealing a wrong assumption about what IntermediateOutputPath already resolved to.
+
+		     4. What actually explains all of this: a real, open, currently-unresolved Microsoft SDK
+		        issue (search "the RuntimeIdentifier should not be used when determining the
+		        outputs of referenced class libraries") describes this exact scenario as a BUG -
+		        RuntimeIdentifier propagating into a referenced class library's output-path
+		        determination is not supposed to happen at all, and a related dotnet/sdk issue
+		        tracking the same propagation problem has been open since 2020. Fighting the SDK
+		        to make Core cooperate with RID-specific building (attempts 2-3) was the wrong
+		        direction - the documented workaround is to stop RuntimeIdentifier from reaching
+		        this reference in the first place, same as TargetFramework already was. Core keeps
+		        its own RuntimeIdentifiers declaration (still needed for restore's RID-qualified
+		        graph generation), but this reference no longer asks it to actually BUILD per-RID. -->
+		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
 	</ItemGroup>
 
 </Project>
