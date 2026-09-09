@@ -55,7 +55,7 @@ builder.Services.AddSwaggerGen(options =>
 // mounted volume - see README on why reference data is deliberately NOT baked into the image)
 // wins if set; otherwise walk up from the executable's location looking for Platform.slnx (the
 // monorepo's full solution, guaranteed to sit at the actual repo root - post-migration this repo
-// also has Engine.slnx/Backend.slnx/App.slnx, each scoped to a subset of projects, so only the
+// also has Engine.slnx/Backend.slnx/Mobile.slnx, each scoped to a subset of projects, so only the
 // full one reliably marks the root), for a working `dotnet run` from within a repo checkout with
 // no environment variable needed at all.
 var dataRoot = builder.Configuration["CDSI_DATA_PATH"] ?? FindDataDirectory();
