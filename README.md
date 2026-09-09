@@ -220,8 +220,13 @@ check and has caught a real bug every single time so far.
 
 ## Repo layout
 
+This repo is a monorepo covering the engine, its two API surfaces, and the mobile app that
+consumes it. It's organized into several scoped solutions rather than one repo-wide `.sln`,
+since each has its own release cadence — see the four `.slnx` files at the repo root
+(`Engine.slnx`, `Backend.slnx`, `Mobile.slnx`, `Platform.slnx` for everything at once).
+
 ```
-src/Cdsi.Core/
+src/OpenCdsi.VaxEngine.Core/
   Common/           Shared utilities: DurationExpression parser, TemporalRuleSelector (§3.3)
   Models/           Patient, VaccineDoseAdministered, AntigenAdministered, Gender
   ReferenceData/     AntigenSeries/SeriesDose/AgeRule/IntervalRule models + XML loaders,
@@ -264,46 +269,61 @@ src/Cdsi.Core/
                      GeneratePatientForecast (the complete end-to-end pipeline — raw doses in,
                      merged vaccine group forecasts out), ResolveCompletedSeriesGroups
                      (§6.2's Completed Series condition, resolved via a two-pass approach)
-tests/Cdsi.Core.Tests/
+tests/OpenCdsi.VaxEngine.Core.Tests/
                      xUnit tests wired to the real bundled XML fixtures (not mocks)
-src/Cdsi.Demo/
+tests/OpenCdsi.VaxEngine.Conformance.Tests/
+                     Conformance tests against the CDC's own reference corpus - Engine.slnx only
+src/OpenCdsi.VaxEngine.Demo/
                      Console app: loads the FULL real 30-antigen catalog via
                      ReferenceDataRepository and runs a few sample patients through
                      GeneratePatientForecast end to end, printing real forecast output.
-                     `dotnet run --project src/Cdsi.Demo` from the repo root.
-src/Cdsi.Api/
-                     Minimal-API ASP.NET Core 8 web service wrapping GeneratePatientForecast.
-                     `dotnet run --project src/Cdsi.Api`, or `docker compose up --build` from
-                     the repo root — see "Cdsi.Api — the dockerized web API" below.
-src/Cdsi.Contracts/
-                     Request/response DTOs and their mapping to/from Cdsi.Core's domain models -
-                     shared between Cdsi.Api and Cdsi.Functions, so both API surfaces produce
-                     and consume identical JSON shapes from one implementation, not two.
-src/Cdsi.Functions/
+                     `dotnet run --project src/OpenCdsi.VaxEngine.Demo` from the repo root.
+src/OpenCdsi.VaxEngine.Api/
+                     Minimal-API ASP.NET Core web service wrapping GeneratePatientForecast.
+                     `dotnet run --project src/OpenCdsi.VaxEngine.Api`, or
+                     `docker compose up --build` from the repo root — see
+                     "Cdsi.Api — the dockerized web API" below.
+src/OpenCdsi.VaxEngine.Contracts/
+                     Request/response DTOs and their mapping to/from Core's domain models -
+                     shared between Api and Functions, so both API surfaces produce and consume
+                     identical JSON shapes from one implementation, not two.
+src/OpenCdsi.VaxEngine.Functions/
                      Azure Functions (isolated worker) - the same GeneratePatientForecast call,
                      as a second API surface. See "Cdsi.Functions — Azure Functions as a second
                      API surface" below, including honest caveats about what's unverified.
-tests/Cdsi.Api.Tests/
+tests/OpenCdsi.VaxEngine.Api.Tests/
                      Real HTTP integration tests via WebApplicationFactory<Program> - the
                      actual Program.cs startup running in-memory against the real data/
                      directory, not mocked.
+src/OpenCdsi.Mobile/
+                     .NET MAUI app (Android + Windows). References Core directly via a
+                     same-repo ProjectReference. Mobile.slnx builds just this + Core.
 data/
   antigens/          All 30 CDC AntigenSupportingData-*.xml files + XSD
   schedule/          ScheduleSupportingData.xml + XSD (CVX-to-antigen map, vaccine conflicts)
-Dockerfile           Multi-stage build for Cdsi.Api - see "Cdsi.Api — the dockerized web API"
+Dockerfile           Multi-stage build for the Api - see "Cdsi.Api — the dockerized web API"
 docker-compose.yml   Builds and runs the API locally with the data/ volume mounted
 ```
 
 ## Build & test
 
+Pick the solution scoped to what you're working on rather than a bare `dotnet build` — this repo
+has four `.slnx` files at the root, so an unscoped command is ambiguous and will error:
+
 ```bash
-dotnet restore
-dotnet build
-dotnet test
+dotnet build Engine.slnx    # Core, Contracts, Demo + their tests
+dotnet build Backend.slnx   # Core, Contracts, Api, Functions + Api.Tests
+dotnet build Mobile.slnx    # Core + the MAUI app
+dotnet build Platform.slnx  # everything, for CI or whole-repo work
+dotnet test Engine.slnx     # (etc. - same pattern for test)
 ```
 
 Test fixtures are copied from `data/` into the test output directory at build time (see the
-`<None Include=...>` items in `Cdsi.Core.Tests.csproj`) — no manual setup needed.
+`<None Include=...>` items in `OpenCdsi.VaxEngine.Core.Tests.csproj`) — no manual setup needed.
+`OpenCdsi.VaxEngine.Api.Tests` instead resolves `data/` at runtime by walking up from the test
+host's own output directory to `Platform.slnx` at the repo root (see `FindDataDirectory` in
+`Program.cs`) — also no manual setup, but it does mean those tests need `Platform.slnx` to exist,
+not just `Backend.slnx`.
 
 ## Run the whole pipeline yourself
 
