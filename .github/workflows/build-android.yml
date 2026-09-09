@@ -58,8 +58,19 @@ jobs:
       - name: Install .NET MAUI Android workload
         run: dotnet workload install maui-android
 
+      # -c Release -f net10.0-android, matching the Build step below exactly: the .NET Android
+      # workload only pulls in its default multi-ABI RuntimeIdentifiers (android-arm64,
+      # android-x64, ...) for Release builds, not Debug. A bare `dotnet restore` with no
+      # -c/-f (the previous version of this step) restores Debug's simpler, RID-less graph, then
+      # the Release build below needs the RID-specific one that was never captured - confirmed by
+      # a real CI failure: NETSDK1047, "Assets file ... doesn't have a target for
+      # 'net10.0/android-arm64'" on OpenCdsi.VaxEngine.Core specifically (only surfaced once Core
+      # became a live ProjectReference in this migration - a compiled NuGet package never needed
+      # this cross-project RID negotiation at all). No -r here since the RID list itself is
+      # implicit/default for Release, not manually chosen - so this doesn't hit the documented
+      # -f-plus-r `dotnet restore` bug worked around in the Windows job below.
       - name: Restore
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -c Release -f net10.0-android
 
       # Only produces output on a tag push (empty otherwise, so a plain push/PR build keeps
       # using the ApplicationDisplayVersion/ApplicationVersion already in the csproj). Expects
