@@ -6,6 +6,20 @@
     <Nullable>enable</Nullable>
     <RootNamespace>OpenCdsi.VaxEngine.Core</RootNamespace>
     <LangVersion>12</LangVersion>
+
+    <!-- Required for Mobile to build for Android/Windows since Core became a ProjectReference
+         (was a NuGet package): confirmed by a real CI failure (NETSDK1047, "doesn't have a
+         target for 'net10.0/android-arm64'") that declaring RuntimeIdentifiers on Mobile.csproj
+         ALONE is not enough - Core's own project.assets.json still lacked the RID-qualified
+         section even though Core built successfully (plain net10.0) in the same run. NuGet's
+         RID-aware restore graph does not auto-generate a compatible entry for a referenced
+         project that declares no RuntimeIdentifiers of its own (an earlier, wrong assumption
+         behind the Mobile-only fix) - each project in the graph needs matching RIDs declared
+         directly for its own assets.json to gain that RID-qualified section at all. Core has no
+         native/platform-specific code, so this doesn't change its actual compiled output for any
+         consumer (Api/Functions/Demo/external NuGet) - it only adds RID-qualified restore-graph
+         entries alongside the existing plain net10.0 one. -->
+    <RuntimeIdentifiers>android-arm64;android-x64;win-x64;win-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <!--
