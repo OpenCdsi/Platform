@@ -172,6 +172,16 @@ jobs:
       # publishes default this to true, which needs a R2R runtime pack this implicit restore
       # doesn't ask for, and fails the build with NETSDK1094 - simplest fix is to just not ask for
       # that startup-time optimization on what's a one-off build, not a shipping product.
+      #
+      # UseMonoRuntime=false: self-contained MAUI Windows publish otherwise defaults to the Mono
+      # runtime, but Microsoft stopped publishing desktop MonoVM runtime packages
+      # (Microsoft.NETCore.App.Runtime.Mono.win-x64 etc.) to NuGet after .NET 8 - they were never
+      # an officially supported path, just an undocumented switch that got removed. Confirmed by
+      # a real CI failure: NU1102, "Unable to find package Microsoft.NETCore.App.Runtime.Mono.
+      # win-x64 with version (= 10.0.12)". This is a live, open, Microsoft-acknowledged bug
+      # (dotnet/maui#32968) that hits any .NET 10 MAUI Windows self-contained publish, nothing to
+      # do with this repo's own code - forcing the normal CoreCLR runtime instead (which is what
+      # a win-x64 desktop app should be using anyway) is the documented workaround.
       - name: Publish (Release, Windows, unpackaged win-x64)
         run: >
           dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
@@ -181,6 +191,7 @@ jobs:
           --self-contained
           -p:WindowsAppSDKSelfContained=true
           -p:PublishReadyToRun=false
+          -p:UseMonoRuntime=false
           ${{ steps.version.outputs.msbuild_args }}
 
       - name: Zip win-x64 build
@@ -207,6 +218,7 @@ jobs:
           --self-contained
           -p:WindowsAppSDKSelfContained=true
           -p:PublishReadyToRun=false
+          -p:UseMonoRuntime=false
           ${{ steps.version.outputs.msbuild_args }}
 
       - name: Zip win-arm64 build
