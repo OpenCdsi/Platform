@@ -15,8 +15,8 @@
 		     project's own restored assets - Core included. A compiled NuGet package never needed
 		     its own RID-qualified restore entry, but a live ProjectReference does. Without this,
 		     `dotnet restore` (no -r flag anywhere in the Android CI job) never knows a RID is
-		     coming, builds a RID-agnostic graph, and the later `-f net10.0-android --no-restore`
-		     build discovers the gap too late - confirmed by a real CI failure: NETSDK1047,
+		     coming, builds a RID-agnostic graph, and the later `-f net10.0-android` build (run
+		     with restore skipped) discovers the gap too late - confirmed by a real CI failure: NETSDK1047,
 		     "doesn't have a target for 'net10.0/android-arm64'"/'net10.0/android-x64'. Declaring
 		     these here makes THIS project's restore RID-aware, which is enough - Core doesn't need
 		     its own RuntimeIdentifiers, since it has no native code, NuGet's restore graph
