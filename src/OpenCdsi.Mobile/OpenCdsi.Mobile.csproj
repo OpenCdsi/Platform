@@ -17,13 +17,27 @@
 		     `dotnet restore` (no -r flag anywhere in the Android CI job) never knows a RID is
 		     coming, builds a RID-agnostic graph, and the later `-f net10.0-android` build (run
 		     with restore skipped) discovers the gap too late - confirmed by a real CI failure: NETSDK1047,
-		     "doesn't have a target for 'net10.0/android-arm64'"/'net10.0/android-x64'. Declaring
-		     these here makes THIS project's restore RID-aware, which is enough - Core doesn't need
-		     its own RuntimeIdentifiers, since it has no native code, NuGet's restore graph
-		     generates a matching RID-qualified entry for a plain referenced library automatically
-		     once the outer (this) project's RIDs are known. Scoped to net10.0-android only - the
-		     Windows TFM already gets its RIDs from an explicit -r flag per-build in CI instead. -->
+		     "doesn't have a target for 'net10.0/android-arm64'"/'net10.0/android-x64'.
+
+		     Two corrections to the reasoning this originally shipped with, both learned the hard
+		     way via later CI failures - noted here since a future reader (human or Claude) working
+		     from just this comment would otherwise repeat the same wrong turns:
+		     - "Core doesn't need its own RuntimeIdentifiers" was wrong. It does (see
+		       OpenCdsi.VaxEngine.Core.csproj) - restore's RID-aware graph does not auto-generate a
+		       compatible entry for a referenced project that declares no RuntimeIdentifiers of its
+		       own; each project in the graph needs matching RIDs declared directly.
+		     - "the Windows TFM gets its RIDs from an explicit -r flag in CI instead" was also
+		       wrong, or at least fragile - that pattern (raw -p:TargetFramework= combined with a
+		       raw -r flag, both CLI-level overrides) hit NETSDK1005 (TargetFramework leaking into
+		       Core's restore) even after ProjectReference-level fixes that correctly solved the
+		       same leak for Android. Windows now uses the identical -f-plus-declared-property
+		       pattern below, for the same reason. -->
 		<RuntimeIdentifiers Condition="'$(TargetFramework)' == 'net10.0-android'">android-arm64;android-x64</RuntimeIdentifiers>
+		<!-- Same reasoning as the Android RuntimeIdentifiers above, and required for the same
+		     reason Windows CI now restores with plain `-f net10.0-windows10.0.19041.0` (see
+		     build-android.yml's build-windows job) rather than a raw -p:TargetFramework=/-r
+		     combination - this is what supplies RID awareness now that the CLI no longer does. -->
+		<RuntimeIdentifiers Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">win-x64;win-arm64</RuntimeIdentifiers>
 
 		<OutputType>Exe</OutputType>
 		<RootNamespace>OpenCdsi.Mobile</RootNamespace>

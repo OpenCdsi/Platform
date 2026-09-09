@@ -150,33 +150,36 @@ jobs:
           echo "display_version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "msbuild_args=/p:ApplicationDisplayVersion=$VERSION" >> "$GITHUB_OUTPUT"
 
-      # Restoring both RIDs in one pass (-p:RuntimeIdentifiers=win-x64%3Bwin-arm64, plural property,
-      # %3B-escaped semicolon) reliably hit NETSDK1083 ("RuntimeIdentifier 'win-x64;win-arm64' is
-      # not recognized") - something about this project's combination of an explicit single
-      # -p:TargetFramework and a multi-value RuntimeIdentifiers collapses it back into the singular
-      # RuntimeIdentifier property somewhere in the SDK's own targets. Restoring once per RID next
-      # to its own Publish step instead is the exact pattern already proven working for win-x64
-      # alone - simpler to reason about than chasing that interaction further.
+      # History of what this restore step took to get right, since two different combinations
+      # were tried and failed before landing here - worth knowing so a future reader doesn't
+      # repeat either:
       #
-      # -p:TargetFramework=..., not -f: combining -f with -r on `dotnet restore` made the TFM leak
-      # through as a stray positional MSBuild argument instead of being consumed as -f's value
-      # (confirmed by a real CI failure - MSB1008: Only one project can be specified, with the TFM
-      # string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
-      # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
-      - name: Restore (win-x64)
-        # -p:RestoreUseStaticGraphEvaluation=false is required, not optional - restore's default
-        # static-graph evaluation computes its own inferred global properties per ProjectReference
-        # node independently of GlobalPropertiesToRemove (a real MSBuild issue: "the reference was
-        # called with global properties that do not match the static graph inferred nodes" -
-        # dotnet/msbuild#6856), so the raw -p:TargetFramework= below still leaked into Core's
-        # restore even after Mobile.csproj's ProjectReference GlobalPropertiesToRemove correctly
-        # fixed the same leak for normal build/publish target execution - confirmed by a real CI
-        # failure at the later publish step (--no-restore, using this step's already-broken
-        # output): NETSDK1005, "doesn't have a target for 'net10.0'", identical to the original
-        # bug this whole ProjectReference saga started from. Slower (falls back to the older,
-        # non-static-graph restore path) but correct - this repo's restore graph is small enough
-        # that the cost is negligible.
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64 -p:RestoreUseStaticGraphEvaluation=false
+      # 1. Restoring both RIDs in one pass via -p:RuntimeIdentifiers=win-x64%3Bwin-arm64 (plural
+      #    property, %3B-escaped semicolon) combined with an explicit -p:TargetFramework=... hit
+      #    NETSDK1083 ("RuntimeIdentifier 'win-x64;win-arm64' is not recognized") - something
+      #    about combining an explicit single TargetFramework with a multi-value
+      #    RuntimeIdentifiers, BOTH as raw command-line property overrides, collapses it back into
+      #    a singular RuntimeIdentifier property somewhere in the SDK's own targets.
+      #
+      # 2. Restoring once per RID next to its own Publish step, using -p:TargetFramework=... -r
+      #    <rid> (not -f - combining -f with -r on `dotnet restore` separately hit MSB1008, "Only
+      #    one project can be specified", the TFM leaking through as a stray positional MSBuild
+      #    argument) - avoided both of the above, but hit a THIRD problem: restore's raw
+      #    -p:TargetFramework= override still leaked into Core's own restore (NETSDK1005,
+      #    "doesn't have a target for 'net10.0'") even with Mobile.csproj's ProjectReference
+      #    GlobalPropertiesToRemove correctly fixing the identical leak for Android's build/publish
+      #    - and even with -p:RestoreUseStaticGraphEvaluation=false, which didn't help either.
+      #
+      # What actually works: this is the SAME pattern already proven for Android's restore (see
+      # that job's own Restore step) - just `-f <TFM>`, no -r, no raw -p:TargetFramework=/
+      # -p:RuntimeIdentifiers= overrides at all. RID awareness comes entirely from
+      # Mobile.csproj's own declared, TFM-conditioned RuntimeIdentifiers property instead of any
+      # CLI-level override - the two prior failures both involved raw CLI property overrides
+      # fighting each other or leaking into Core's restore; this avoids that whole class of
+      # problem by not using them. One restore now covers both win-x64 and win-arm64, same as
+      # Android's one restore already covers both android-arm64 and android-x64.
+      - name: Restore
+        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -c Release -f net10.0-windows10.0.19041.0
 
       # --self-contained, not the framework-dependent default, because WindowsPackageType=None
       # (see the csproj) makes each of these an ordinary folder someone can unzip and run -
@@ -212,14 +215,10 @@ jobs:
           path: opencdsi-mobile-win-x64.zip
           if-no-files-found: error
 
-      - name: Restore (win-arm64)
-        # See the win-x64 Restore step's own comment above for why
-        # -p:RestoreUseStaticGraphEvaluation=false is required here too.
-        run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-arm64 -p:RestoreUseStaticGraphEvaluation=false
-
       # Same as the win-x64 publish above, just -r win-arm64 - for a native ARM64 Windows VM
       # (e.g. UTM on Apple Silicon), rather than relying on Windows 11's x64 emulation to run the
-      # x64 build.
+      # x64 build. No separate restore needed here - the single combined Restore step above
+      # already covers both win-x64 and win-arm64.
       - name: Publish (Release, Windows, unpackaged win-arm64)
         run: >
           dotnet publish src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
