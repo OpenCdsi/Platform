@@ -14,7 +14,7 @@ namespace OpenCdsi.VaxEngine.Api.Tests;
 /// Real, end-to-end HTTP tests against the actual API, via WebApplicationFactory&lt;Program&gt; -
 /// the real Program.cs startup runs in-memory, including real data loading from the real repo
 /// data/ directory (via Program.cs's own FindDataDirectory, walking up from the test host's own
-/// bin/ output directory to the real OpenCdsi.VaxEngine.sln - the same proven mechanism OpenCdsi.VaxEngine.Demo already
+/// bin/ output directory to the real Platform.slnx - the same proven mechanism OpenCdsi.VaxEngine.Demo already
 /// uses). Not mocked at any layer - this is the real GeneratePatientForecast pipeline reached
 /// through the real HTTP/JSON boundary.
 /// </summary>

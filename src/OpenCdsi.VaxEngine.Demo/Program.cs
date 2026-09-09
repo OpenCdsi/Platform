@@ -79,13 +79,13 @@ void RunPatient(string label, DateOnly dob, IReadOnlyList<VaccineDoseAdministere
 static string FindDataDirectory()
 {
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
-    while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "OpenCdsi.VaxEngine.sln")))
+    while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Platform.slnx")))
     {
         dir = dir.Parent;
     }
     if (dir is null)
     {
-        throw new InvalidOperationException("Couldn't find the repo root (OpenCdsi.VaxEngine.sln) walking up from the executable's directory - run this from within the cdsi-engine checkout.");
+        throw new InvalidOperationException("Couldn't find the repo root (Platform.slnx) walking up from the executable's directory - run this from within the cdsi-engine checkout.");
     }
     return Path.Combine(dir.FullName, "data");
 }

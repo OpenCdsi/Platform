@@ -53,8 +53,11 @@ builder.Services.AddSwaggerGen(options =>
 // ONCE at startup as a singleton, not per-request. Data path resolution mirrors OpenCdsi.VaxEngine.Demo's own
 // FindDataDirectory pattern: CDSI_DATA_PATH (set by the Dockerfile/docker-compose to /data, the
 // mounted volume - see README on why reference data is deliberately NOT baked into the image)
-// wins if set; otherwise walk up from the executable's location looking for OpenCdsi.VaxEngine.sln, for a
-// working `dotnet run` from within a repo checkout with no environment variable needed at all.
+// wins if set; otherwise walk up from the executable's location looking for Platform.slnx (the
+// monorepo's full solution, guaranteed to sit at the actual repo root - post-migration this repo
+// also has Engine.slnx/Backend.slnx/App.slnx, each scoped to a subset of projects, so only the
+// full one reliably marks the root), for a working `dotnet run` from within a repo checkout with
+// no environment variable needed at all.
 var dataRoot = builder.Configuration["CDSI_DATA_PATH"] ?? FindDataDirectory();
 builder.Services.AddSingleton(_ =>
 {
@@ -259,14 +262,14 @@ app.Run();
 static string FindDataDirectory()
 {
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
-    while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "OpenCdsi.VaxEngine.sln")))
+    while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Platform.slnx")))
     {
         dir = dir.Parent;
     }
     if (dir is null)
     {
         throw new InvalidOperationException(
-            "Couldn't find the repo root (OpenCdsi.VaxEngine.sln) walking up from the executable's directory, " +
+            "Couldn't find the repo root (Platform.slnx) walking up from the executable's directory, " +
             "and CDSI_DATA_PATH was not set. Set the CDSI_DATA_PATH environment variable, " +
             "or run this from within the cdsi-engine checkout.");
     }

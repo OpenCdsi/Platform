@@ -16,7 +16,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
 
 // Same data-loading design as OpenCdsi.VaxEngine.Api: CDSI_DATA_PATH wins if set (the real deployed/Docker
-// scenario), otherwise walk up from the executable's location looking for OpenCdsi.VaxEngine.sln (the same
+// scenario), otherwise walk up from the executable's location looking for Platform.slnx (the
 // FindDataDirectory pattern already proven in OpenCdsi.VaxEngine.Demo and OpenCdsi.VaxEngine.Api) for local development
 // with no environment variable needed at all.
 var dataRoot = builder.Configuration["CDSI_DATA_PATH"] ?? FindDataDirectory();
@@ -41,14 +41,14 @@ app.Run();
 static string FindDataDirectory()
 {
     var dir = new DirectoryInfo(AppContext.BaseDirectory);
-    while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "OpenCdsi.VaxEngine.sln")))
+    while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Platform.slnx")))
     {
         dir = dir.Parent;
     }
     if (dir is null)
     {
         throw new InvalidOperationException(
-            "Couldn't find the repo root (OpenCdsi.VaxEngine.sln) walking up from the executable's directory, " +
+            "Couldn't find the repo root (Platform.slnx) walking up from the executable's directory, " +
             "and CDSI_DATA_PATH was not set. Set the CDSI_DATA_PATH environment variable " +
             "(in local.settings.json for local development), or run this from within the " +
             "cdsi-engine checkout.");

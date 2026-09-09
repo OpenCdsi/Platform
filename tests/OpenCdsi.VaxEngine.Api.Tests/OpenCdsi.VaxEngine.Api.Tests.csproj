@@ -27,7 +27,7 @@
 
   <!-- No data-copying setup needed here, unlike OpenCdsi.VaxEngine.Core.Tests: Program.cs's own
        FindDataDirectory walks up from the test assembly's own bin/ output directory (through
-       tests/OpenCdsi.VaxEngine.Api.Tests/, tests/) until it finds OpenCdsi.VaxEngine.sln at the real repo root, then
+       tests/OpenCdsi.VaxEngine.Api.Tests/, tests/) until it finds Platform.slnx at the real repo root, then
        resolves data/ from there - the exact same mechanism already proven working for
        OpenCdsi.VaxEngine.Demo's own `dotnet run`. Nothing extra to copy or configure. -->
 
