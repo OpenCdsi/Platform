@@ -36,6 +36,19 @@
          $(RuntimeIdentifier) is empty there, so appending nothing leaves the output path
          unchanged. -->
     <AppendRuntimeIdentifierToOutputPath Condition="'$(RuntimeIdentifier)' != ''">true</AppendRuntimeIdentifierToOutputPath>
+
+    <!-- AppendRuntimeIdentifierToOutputPath above only affects OutputPath (bin) - confirmed by a
+         real local repro with `-v:d` verbose logging (much faster to iterate than a CI
+         round-trip): the log shows bin/Release/net10.0/android-arm64/... being correctly
+         referenced (an expected-not-yet-exists deps.json check), while the actual MSB3030
+         failure is obj/Release/net10.0/android-arm64/OpenCdsi.VaxEngine.Core.dll "not found" -
+         the OBJ (intermediate) path was NOT similarly RID-qualified, so CoreCompile wrote its
+         output to the plain obj/Release/net10.0/ folder while the later copy step looked for it
+         at the RID-qualified one. A known SDK gap: AppendRuntimeIdentifierToOutputPath doesn't
+         also cover IntermediateOutputPath, so it needs its own explicit override here, appended
+         onto whatever IntermediateOutputPath already resolved to (respecting the SDK's own
+         default Configuration+TargetFramework nesting) rather than reconstructed from scratch. -->
+    <IntermediateOutputPath Condition="'$(RuntimeIdentifier)' != ''">$(IntermediateOutputPath)$(RuntimeIdentifier)\</IntermediateOutputPath>
   </PropertyGroup>
 
   <!--
