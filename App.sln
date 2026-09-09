@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj" />
+    <Project Path="src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj" />
+  </Folder>
+</Solution>

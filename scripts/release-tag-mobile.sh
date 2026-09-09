@@ -10,6 +10,10 @@
 #
 # Pushing the tag triggers .github/workflows/build-android.yml's release job: builds Android +
 # Windows (x64/arm64), then attaches all three to a GitHub Release for this tag.
+#
+# This repo is a monorepo with several independently-tagged solutions (engine-v*, mobile-v*,
+# ...). This script only ever cuts mobile-v* releases - takes the bare vX.Y.Z version and adds
+# the "mobile-" prefix itself, so invocation stays exactly what it was before the migration.
 set -euo pipefail
 
 if [ $# -ne 1 ]; then
@@ -17,12 +21,14 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-TAG="$1"
+VERSION="$1"
 
-if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+].+)?$ ]]; then
-    echo "Error: '$TAG' doesn't look like vMAJOR.MINOR.PATCH (e.g. v1.2.3)" >&2
+if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+].+)?$ ]]; then
+    echo "Error: '$VERSION' doesn't look like vMAJOR.MINOR.PATCH (e.g. v1.2.3)" >&2
     exit 1
 fi
+
+TAG="mobile-$VERSION"
 
 echo "Fetching origin/main..."
 git fetch origin main
@@ -36,4 +42,5 @@ git push origin "$TAG"
 
 echo
 echo "Done. $TAG is at $TARGET_SHA - watch the release build at:"
-echo "  https://github.com/OpenCdsi/OpenCdsi.Mobile/actions"
+echo "  https://github.com/OpenCdsi/<new-repo-name>/actions"
+echo "  (update this URL once the new repo has its real name)"

@@ -1,4 +1,8 @@
-# Publishes the OpenCdsi.VaxEngine package to GitHub Packages whenever a semver tag is pushed to main.
+# Publishes the OpenCdsi.VaxEngine package to GitHub Packages whenever an engine-vX.Y.Z tag is
+# pushed to main. This repo is a monorepo containing several independently-released
+# solutions (Engine, Backend, Mobile), each tagged with its own prefix - this workflow only
+# reacts to the engine-v prefix, so an api/functions/mobile-only release doesn't touch this
+# package at all, and this package's own release doesn't trigger anyone else's build.
 #
 # Deliberately narrow in scope: this workflow only builds and publishes src/OpenCdsi.VaxEngine.Core - the one
 # project actually meant for external, NuGet consumption (e.g. a .NET MAUI app referencing it).
@@ -6,28 +10,29 @@
 # they're deployed differently (see the repo's own Dockerfile/docker-compose.yml), and bundling
 # them into this package would contradict the project's own stated goal of keeping schedule data
 # externally updatable without a new package release (see OpenCdsi.VaxEngine.Core.csproj's own comments).
+# Note this package is now purely for external consumers - this repo's own Mobile app references
+# Core via a same-repo ProjectReference instead, so it doesn't depend on this publish step at all.
 #
 # Two safety checks run BEFORE anything gets built or published, since a wrong version number or
 # a tag placed on the wrong branch is much harder to undo once a package is live on the registry
 # than it would be to catch here first:
-#   1. The tag itself must be a real, valid semver (with the "v" prefix this project's own
-#      convention uses - confirmed via the v1.2.0 tag already placed on main) - not just
-#      "looks vaguely like dots and numbers," which is all the workflow-level trigger filter
-#      below can check on its own.
+#   1. The tag itself must be a real, valid semver (with the "engine-v" prefix this monorepo's own
+#      convention uses) - not just "looks vaguely like dots and numbers," which is all the
+#      workflow-level trigger filter below can check on its own.
 #   2. The tagged commit must actually be reachable from main - matching "add a new semver tag to
 #      the main branch" literally, not just "any tag anywhere in the repo, on any branch."
 #
-# The trigger pattern (v*.*.*) is deliberately permissive - GitHub Actions' own tag-filter glob
-# syntax can't express a real semver pattern - so the real validation happens in the "Validate
-# tag is real semver" step below, with a clear, specific failure message rather than a vague
-# build error if someone pushes something like "v1.2" or "version-1.2.0" by mistake.
+# The trigger pattern (engine-v*.*.*) is deliberately permissive - GitHub Actions' own tag-filter
+# glob syntax can't express a real semver pattern - so the real validation happens in the
+# "Validate tag is real semver" step below, with a clear, specific failure message rather than a
+# vague build error if someone pushes something like "engine-v1.2" by mistake.
 
 name: Publish OpenCdsi.VaxEngine to GitHub Packages
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'engine-v*.*.*'
 
 permissions:
   contents: read
@@ -47,13 +52,14 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           # Full semver 2.0.0 pattern (semver.org's own regex), applied after stripping the
-          # required leading "v" - rejects things like "v1.2" or "v1.2.3.4" with a clear message
-          # rather than letting a malformed version reach `dotnet pack` and fail there instead.
-          if [[ ! "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?$ ]]; then
-            echo "::error::Tag '$TAG' is not a valid semver tag (expected format: v1.2.3, with an optional -prerelease or +build suffix). Not publishing."
+          # required leading "engine-v" - rejects things like "engine-v1.2" or "v1.2.3" (missing
+          # the engine- prefix) with a clear message rather than letting a malformed version
+          # reach `dotnet pack` and fail there instead.
+          if [[ ! "$TAG" =~ ^engine-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?$ ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver tag (expected format: engine-v1.2.3, with an optional -prerelease or +build suffix). Not publishing."
             exit 1
           fi
-          VERSION="${TAG#v}" # NuGet's own Version property doesn't take the "v" prefix
+          VERSION="${TAG#engine-v}" # NuGet's own Version property doesn't take the "engine-v" prefix
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Validated tag $TAG -> package version $VERSION"
 

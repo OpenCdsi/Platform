@@ -1,6 +1,6 @@
-# Builds the app for Android and Windows (x64 and arm64) on every push/PR touching src/, plus any
-# push of a semver tag (v1.2.3-style) - which additionally publishes every build to a GitHub
-# Release.
+# Builds the app for Android and Windows (x64 and arm64) on any push/PR touching this app's own
+# source or the Engine source it depends on, plus any push of a mobile-vX.Y.Z tag - which
+# additionally publishes every build to a GitHub Release.
 #
 # Android needs the real Android SDK (platform android.jar, build-tools), which .NET's workload
 # install fetches from Google's package repository at build time - a GitHub-hosted runner has
@@ -10,19 +10,33 @@
 # self-contained win-arm64 publish cross-targets fine from there - the ARM64 runtime pack is just
 # another NuGet package, no ARM64 host or emulation needed to produce it.
 #
-# Both restores need read access to this org's GitHub Packages feed to restore
-# OpenCdsi.VaxEngine.Core. The built-in GITHUB_TOKEN only covers packages published from the SAME
-# repo the workflow runs in; OpenCdsi.VaxEngine is published from OpenCdsi/VaxEngine, a different
-# repo, so restoring it here needs a classic PAT with the read:packages scope, stored as the
-# NUGET_READ_PAT repo secret.
+# Post-monorepo-migration: this app now references OpenCdsi.VaxEngine.Core via a plain
+# ProjectReference (not a NuGet PackageReference), since Core's source lives in this same repo.
+# That means the old GitHub Packages restore - and the classic PAT it needed (NUGET_READ_PAT),
+# because the built-in GITHUB_TOKEN only covers packages published from the same repo - is gone.
+# Plain `dotnet restore`/`dotnet build` picks up Core's source directly, no extra auth required.
+#
+# Tag prefix: this repo tags each solution's releases separately (engine-vX.Y.Z, mobile-vX.Y.Z,
+# ...), so this workflow only reacts to the mobile-v* prefix - an engine-v tag alone won't build
+# or release this app.
+#
+# NOTE: GitHub's push-event `paths` filter is well-documented for branch pushes; its exact
+# behavior on tag pushes is less consistently documented. Worth confirming once this is live that
+# a mobile-v* tag reliably triggers the release job regardless of the paths filter below.
 
 name: Build OpenCdsi Mobile
 
 on:
   push:
     branches: [main]
-    tags: ['v*.*.*']
+    paths:
+      - 'src/OpenCdsi.Mobile/**'
+      - 'src/OpenCdsi.VaxEngine.Core/**'
+    tags: ['mobile-v*.*.*']
   pull_request:
+    paths:
+      - 'src/OpenCdsi.Mobile/**'
+      - 'src/OpenCdsi.VaxEngine.Core/**'
   workflow_dispatch:
 
 permissions:
@@ -45,9 +59,6 @@ jobs:
         run: dotnet workload install maui-android
 
       - name: Restore
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
         run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj
 
       # Only produces output on a tag push (empty otherwise, so a plain push/PR build keeps
@@ -61,10 +72,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
+          VERSION="${TAG#mobile-v}"
 
           if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
-            echo "::error::Tag '$TAG' is not a valid semver version (expected vMAJOR.MINOR.PATCH, e.g. v1.2.3)"
+            echo "::error::Tag '$TAG' is not a valid semver version (expected mobile-vMAJOR.MINOR.PATCH, e.g. mobile-v1.2.3)"
             exit 1
           fi
 
@@ -118,10 +129,10 @@ jobs:
         shell: bash
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
-          VERSION="${TAG#v}"
+          VERSION="${TAG#mobile-v}"
 
           if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
-            echo "::error::Tag '$TAG' is not a valid semver version (expected vMAJOR.MINOR.PATCH, e.g. v1.2.3)"
+            echo "::error::Tag '$TAG' is not a valid semver version (expected mobile-vMAJOR.MINOR.PATCH, e.g. mobile-v1.2.3)"
             exit 1
           fi
 
@@ -142,9 +153,6 @@ jobs:
       # string sitting bare on the MSBuild.exe command line). The explicit MSBuild property
       # sidesteps whatever's going on in the CLI's flag-forwarding for that combination.
       - name: Restore (win-x64)
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
         run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-x64
 
       # --self-contained, not the framework-dependent default, because WindowsPackageType=None
@@ -182,9 +190,6 @@ jobs:
           if-no-files-found: error
 
       - name: Restore (win-arm64)
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.NUGET_READ_PAT }}
         run: dotnet restore src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -r win-arm64
 
       # Same as the win-x64 publish above, just -r win-arm64 - for a native ARM64 Windows VM

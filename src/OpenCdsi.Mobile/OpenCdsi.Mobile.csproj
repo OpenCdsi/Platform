@@ -66,7 +66,14 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-		<PackageReference Include="OpenCdsi.VaxEngine.Core" Version="2.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Was a NuGet PackageReference to OpenCdsi.VaxEngine.Core (pulled from GitHub Packages,
+		     which required a cross-repo PAT to restore). Now that this project lives in the same
+		     repo as Core, a plain ProjectReference always builds against current Engine source -
+		     no version bump/publish/PAT dance needed for day-to-day work. -->
+		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" />
 	</ItemGroup>
 
 </Project>
