@@ -66,7 +66,7 @@ public class MeningococcalBInvestigationTests : IClassFixture<ReferenceDataFixtu
         Assert.Equal(new DateOnly(2022, 8, 5), menBGroup.AdjustedRecommendedDate);
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_IsMeningococcalBAntigenDataActuallyLoaded()
     {
         var repo = _fixture.Repository;
@@ -81,7 +81,7 @@ public class MeningococcalBInvestigationTests : IClassFixture<ReferenceDataFixtu
             $"All distinct antigens loaded ({distinctAntigens.Length}): {string.Join(", ", distinctAntigens)}");
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_2024_0032_ZeroDose20YearOld_WhereDoesMeningococcalBDropOut()
     {
         // DIAGNOSTIC, not a fix. The first diagnostic disproved the stale-build hypothesis

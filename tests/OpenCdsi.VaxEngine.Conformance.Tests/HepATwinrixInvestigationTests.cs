@@ -42,7 +42,7 @@ public class HepATwinrixInvestigationTests : IClassFixture<ReferenceDataFixture>
         _fixture = fixture;
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_HepB_2026_0006_Twinrix27YearOld_WhichSeriesWinsAndWhy()
     {
         var repo = _fixture.Repository;
@@ -84,7 +84,7 @@ public class HepATwinrixInvestigationTests : IClassFixture<ReferenceDataFixture>
         Assert.True(false, $"Relevant series count={relevantSeries.Length} || {perSeriesDump} || BEST: {bestNames}");
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_HepA_2026_0006_Twinrix27YearOld_WhichSeriesWinsAndWhy()
     {
         // The real vaccineGroup this corpus case actually checks (confirmed from the corpus's

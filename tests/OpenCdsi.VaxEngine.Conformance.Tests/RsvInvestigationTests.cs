@@ -106,7 +106,7 @@ public class RsvInvestigationTests : IClassFixture<ReferenceDataFixture>
         Assert.Equal(EvaluationStatus.Valid, doseResult.Result.EvaluationStatus);
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_2024_0056_Arexvy75YearOld_WhichRsvSeriesWinAndWhy()
     {
         var repo = _fixture.Repository;

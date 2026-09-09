@@ -354,7 +354,7 @@ public class EvaluateSeriesHistoryTests
         Assert.Equal(9, result.CurrentTargetDoseNumber);
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_RealPertussis_2013_0016_ThreeDoses_ExactlyWhichDoseSatisfiedWhichTargetDose()
     {
         // DIAGNOSTIC, not a fix. Companion to the diagnostic immediately above, which confirmed
@@ -396,7 +396,7 @@ public class EvaluateSeriesHistoryTests
         Assert.True(false, $"Count={result.AllEvaluatedDoses.Count} | {dump}");
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_RealTetanus_2013_0016_ThreeDoses_ExactlyWhichDoseSatisfiedWhichTargetDose()
     {
         // DIAGNOSTIC, not a fix. The Pertussis-only version of this diagnostic revealed something

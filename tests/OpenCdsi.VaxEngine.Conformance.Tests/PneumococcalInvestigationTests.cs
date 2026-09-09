@@ -68,7 +68,7 @@ public class PneumococcalInvestigationTests : IClassFixture<ReferenceDataFixture
         Assert.Equal(EvaluationStatus.Valid, doseResult.Result.EvaluationStatus);
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_2013_0576_Dose1PCV15At18Months_WhichSeriesAndWhyNotSatisfied()
     {
         var repo = _fixture.Repository;
@@ -97,7 +97,7 @@ public class PneumococcalInvestigationTests : IClassFixture<ReferenceDataFixture
         Assert.True(false, $"CurrentTargetDoseNumber={detail?.CurrentTargetDoseNumber} || DoseResults: {doseResultsDump} || AllEvaluatedDoses: {evaluatedDump}");
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_2013_0576_Dose1PCV15At18Months_WhichSeriesAreRelevantAndWhichWinsAsBest()
     {
         // DIAGNOSTIC, not a fix. The first diagnostic above showed the WINNING series' own Dose 1
@@ -174,7 +174,7 @@ public class PneumococcalInvestigationTests : IClassFixture<ReferenceDataFixture
         Assert.Equal(PatientSeriesStatus.Complete, pcvGroup!.Status);
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails via Assert.True(false, ...) to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_2013_0578_Dose1PCV20At24Months_WhySeriesStatusNotComplete()
     {
         // DIAGNOSTIC, not a fix - kept as the record of how this was found. Confirmed by real
