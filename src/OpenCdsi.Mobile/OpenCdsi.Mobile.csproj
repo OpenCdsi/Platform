@@ -90,19 +90,37 @@
 		     repo as Core, a plain ProjectReference always builds against current Engine source -
 		     no version bump/publish/PAT dance needed for day-to-day work.
 
-		     SetTargetFramework="TargetFramework=net10.0" is required, not cosmetic: the Windows CI
-		     job (build-android.yml) restores this project with a raw `-p:TargetFramework=
-		     net10.0-windows10.0.19041.0` MSBuild property (not `-f` - combining `-f` with `-r` on
-		     `dotnet restore` hits a separate, already-worked-around CLI bug there). A `-p:` property
-		     is global - it propagates to every project reachable via ProjectReference, so without
-		     this pin, Core.csproj's own single, non-conditioned `<TargetFramework>net10.0</TargetFramework>`
-		     gets silently overridden to net10.0-windows10.0.19041.0 too, and Core's restore never
-		     produces a net10.0 entry at all - confirmed by a real CI failure: NETSDK1005, "Assets
-		     file ... doesn't have a target for 'net10.0'". This never came up while Core was
-		     consumed as a compiled NuGet package (a package isn't rebuilt against the caller's TFM),
-		     only once it became a live ProjectReference. SetTargetFramework pins what TFM this one
-		     reference resolves against regardless of any ambient/global TargetFramework property. -->
-		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" SetTargetFramework="TargetFramework=net10.0" />
+		     GlobalPropertiesToRemove="TargetFramework" is required, not cosmetic - history below,
+		     since this went through two wrong attempts before landing here:
+
+		     1. The Windows CI job restores this project with a raw `-p:TargetFramework=
+		        net10.0-windows10.0.19041.0` MSBuild property (not `-f` - combining `-f` with `-r`
+		        on `dotnet restore` hits a separate, already-worked-around CLI bug there). A `-p:`
+		        property is global - it propagates to every project reachable via ProjectReference,
+		        so Core.csproj's own single, non-conditioned TargetFramework (net10.0) was getting
+		        silently overridden too, and Core's restore never produced a net10.0 entry at all -
+		        NETSDK1005, "doesn't have a target for 'net10.0'". Never came up while Core was a
+		        compiled NuGet package - only once it became a live ProjectReference.
+
+		     2. First fix attempt: SetTargetFramework="TargetFramework=net10.0" on this reference,
+		        pinning it to plain net10.0 regardless of any ambient override. Fixed Windows, but
+		        broke Android once Core also gained RuntimeIdentifiers (needed separately - Android
+		        needs per-ABI native output even for `dotnet build`, and a referenced project needs
+		        its own matching RuntimeIdentifiers declared for NuGet's RID-aware restore graph to
+		        produce a RID-qualified section for it at all). The pin unconditionally forced this
+		        reference to build RID-LESS regardless of platform, so Android's build - now
+		        correctly expecting Core's RID-qualified output (obj/.../android-arm64/...) - found
+		        only the plain, unqualified build and failed: MSB3030, "Could not copy ... because
+		        it was not found."
+
+		     3. GlobalPropertiesToRemove strips the incoming global TargetFramework property for
+		        THIS reference specifically, rather than overriding it with a fixed replacement -
+		        it fixes the original Windows leak (Core's own declared TargetFramework governs its
+		        evaluation again, unaffected by the CLI's global property) without pinning away
+		        RID context, so the SDK's normal per-reference TFM/RID negotiation - which now
+		        correctly produces RID-qualified output for Android/Windows since Core declares
+		        matching RuntimeIdentifiers - isn't overridden into a fixed, RID-less shape. -->
+		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" GlobalPropertiesToRemove="TargetFramework" />
 	</ItemGroup>
 
 </Project>
