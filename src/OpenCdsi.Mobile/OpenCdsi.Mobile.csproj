@@ -9,6 +9,22 @@
 		<TargetFrameworks>net10.0-android</TargetFrameworks>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
+		<!-- Required since Core became a ProjectReference (was a NuGet package): an Android build
+		     needs per-ABI native output even for plain `dotnet build`, not just `publish`, so it
+		     looks up RID-qualified targets like "net10.0/android-arm64" in every referenced
+		     project's own restored assets - Core included. A compiled NuGet package never needed
+		     its own RID-qualified restore entry, but a live ProjectReference does. Without this,
+		     `dotnet restore` (no -r flag anywhere in the Android CI job) never knows a RID is
+		     coming, builds a RID-agnostic graph, and the later `-f net10.0-android --no-restore`
+		     build discovers the gap too late - confirmed by a real CI failure: NETSDK1047,
+		     "doesn't have a target for 'net10.0/android-arm64'"/'net10.0/android-x64'. Declaring
+		     these here makes THIS project's restore RID-aware, which is enough - Core doesn't need
+		     its own RuntimeIdentifiers, since it has no native code, NuGet's restore graph
+		     generates a matching RID-qualified entry for a plain referenced library automatically
+		     once the outer (this) project's RIDs are known. Scoped to net10.0-android only - the
+		     Windows TFM already gets its RIDs from an explicit -r flag per-build in CI instead. -->
+		<RuntimeIdentifiers Condition="'$(TargetFramework)' == 'net10.0-android'">android-arm64;android-x64</RuntimeIdentifiers>
+
 		<OutputType>Exe</OutputType>
 		<RootNamespace>OpenCdsi.Mobile</RootNamespace>
 		<UseMaui>true</UseMaui>
