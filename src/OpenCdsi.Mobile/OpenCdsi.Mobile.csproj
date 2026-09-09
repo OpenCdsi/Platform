@@ -72,8 +72,21 @@
 		<!-- Was a NuGet PackageReference to OpenCdsi.VaxEngine.Core (pulled from GitHub Packages,
 		     which required a cross-repo PAT to restore). Now that this project lives in the same
 		     repo as Core, a plain ProjectReference always builds against current Engine source -
-		     no version bump/publish/PAT dance needed for day-to-day work. -->
-		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" />
+		     no version bump/publish/PAT dance needed for day-to-day work.
+
+		     SetTargetFramework="TargetFramework=net10.0" is required, not cosmetic: the Windows CI
+		     job (build-android.yml) restores this project with a raw `-p:TargetFramework=
+		     net10.0-windows10.0.19041.0` MSBuild property (not `-f` - combining `-f` with `-r` on
+		     `dotnet restore` hits a separate, already-worked-around CLI bug there). A `-p:` property
+		     is global - it propagates to every project reachable via ProjectReference, so without
+		     this pin, Core.csproj's own single, non-conditioned `<TargetFramework>net10.0</TargetFramework>`
+		     gets silently overridden to net10.0-windows10.0.19041.0 too, and Core's restore never
+		     produces a net10.0 entry at all - confirmed by a real CI failure: NETSDK1005, "Assets
+		     file ... doesn't have a target for 'net10.0'". This never came up while Core was
+		     consumed as a compiled NuGet package (a package isn't rebuilt against the caller's TFM),
+		     only once it became a live ProjectReference. SetTargetFramework pins what TFM this one
+		     reference resolves against regardless of any ambient/global TargetFramework property. -->
+		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" SetTargetFramework="TargetFramework=net10.0" />
 	</ItemGroup>
 
 </Project>
