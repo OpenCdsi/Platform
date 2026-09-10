@@ -15,11 +15,30 @@ directly). This always resolves to whichever tagged release is currently newest 
 QR code itself never needs regenerating:
 
 ```
-https://github.com/OpenCdsi/OpenCdsi.Mobile/releases/latest/download/com.opencdsi.mobile-Signed.apk
+https://github.com/OpenCdsi/Platform/releases/latest/download/com.opencdsi.mobile-Signed.apk
 ```
 
 The phone will need "install unknown apps" allowed for whatever app is used to scan it,
 since this is a direct sideload rather than a Play Store install.
+
+### Windows
+
+The Windows build is a self-signed MSIX — an installer, not just a zipped-up exe (Start Menu
+entry, clean uninstall from Settings). Since it isn't signed by a certificate Windows already
+trusts, there's a one-time setup step before the first install:
+
+```
+https://github.com/OpenCdsi/Platform/releases/latest/download/opencdsi-mobile-signing-cert.cer
+```
+
+1. Download that `.cer` and the `.msix` for your architecture (x64 or arm64) from the same
+   release.
+2. Trust the certificate once, in an **administrator** PowerShell:
+   ```powershell
+   Import-Certificate -FilePath .\opencdsi-mobile-signing-cert.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+   ```
+3. Double-click the `.msix` to install. Later releases reuse the same certificate, so this
+   step doesn't repeat — only the double-click does.
 
 ## License
 
@@ -92,16 +111,24 @@ dotnet restore
 dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-android
 ```
 
-CI builds Android and Windows (x64 + arm64, unpackaged self-contained) on every push/PR
-touching `src/` — see `.github/workflows/build-android.yml`. Pushing a semver tag (`v1.2.3`)
-additionally stamps that version into the build (`ApplicationDisplayVersion`/
-`ApplicationVersion`) and publishes the signed APK plus both Windows zips to a GitHub Release
+CI builds Android and Windows (x64 + arm64, signed MSIX) on every push/PR touching this app's
+source (or the Engine source it depends on) — see `.github/workflows/build-android.yml`.
+Pushing a `mobile-vX.Y.Z` tag additionally stamps that version into the build
+(`ApplicationDisplayVersion`/`ApplicationVersion`, and the MSIX `Identity` version) and
+publishes the signed APK, both MSIX packages, and the signing certificate to a GitHub Release
 for that tag.
 
-To cut a release, use `scripts/release-tag.sh` rather than tagging by hand — it fetches and
-tags `origin/main` directly instead of your local `main` branch, which is easy to leave stale
-(a plain `git fetch` never moves local `main` forward on its own):
+The Windows job needs two repo secrets to sign the MSIX — `WINDOWS_MSIX_CERT_BASE64` and
+`WINDOWS_MSIX_CERT_PASSWORD`. `scripts/generate-signing-cert.sh` creates the certificate and
+prints both values to paste into Settings → Secrets and variables → Actions; see that script's
+own comment for the full one-time setup (only relevant if the certificate ever needs to be
+regenerated, e.g. because it's nearing its 5-year expiry).
+
+To cut a release, use `scripts/release-tag-mobile.sh` rather than tagging by hand — it fetches
+and tags `origin/main` directly instead of your local `main` branch, which is easy to leave
+stale (a plain `git fetch` never moves local `main` forward on its own), and adds the
+`mobile-` prefix itself:
 
 ```
-scripts/release-tag.sh v1.2.3
+scripts/release-tag-mobile.sh v1.2.3
 ```

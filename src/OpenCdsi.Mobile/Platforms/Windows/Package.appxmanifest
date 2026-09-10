@@ -6,13 +6,18 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
 
-  <Identity Name="maui-package-name-placeholder" Publisher="CN=User Name" Version="0.0.0.0" />
+  <!-- Publisher must byte-for-byte match the Subject of whatever certificate signs this package
+       (see scripts/generate-signing-cert.sh) - Windows checks the package's signature against a
+       cert whose Subject equals this string, not just any trusted cert. Version stays a static
+       placeholder here; the release workflow patches it to MAJOR.MINOR.PATCH.0 for tag builds
+       (Identity Version needs exactly four numeric parts, unlike ApplicationDisplayVersion). -->
+  <Identity Name="OpenCdsi.OpenCdsiMobile" Publisher="CN=OpenCdsi" Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="$guid9$" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>$placeholder$</DisplayName>
-    <PublisherDisplayName>User Name</PublisherDisplayName>
+    <PublisherDisplayName>OpenCdsi</PublisherDisplayName>
     <Logo>$placeholder$.png</Logo>
   </Properties>
 

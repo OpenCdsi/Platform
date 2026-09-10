@@ -64,10 +64,17 @@
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
-		<!-- Unpackaged win-x64 exe (self-contained publish), not an MSIX - no Microsoft Store, no
-		     code-signing certificate, no Developer Mode toggle needed to run it. See
-		     https://aka.ms/MauiTemplateUnpackaged if packaged/Store distribution is ever wanted instead. -->
-		<WindowsPackageType>None</WindowsPackageType>
+		<!-- An installable, self-signed MSIX rather than an unpackaged exe/zip - gives testers a real
+		     installer (Start Menu entry, clean uninstall) instead of "unzip and run". Not Store-signed,
+		     so it needs a certificate; the release workflow signs with the self-signed one in
+		     scripts/generate-signing-cert.sh (its public half lives at
+		     src/OpenCdsi.Mobile/assets/opencdsi-mobile-signing-cert.cer, for testers to trust once -
+		     see this project's own README). -->
+		<WindowsPackageType>MSIX</WindowsPackageType>
+		<AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
+		<AppxBundle>Never</AppxBundle>
+		<UapAppxPackageBuildMode>SideloadOnly</UapAppxPackageBuildMode>
+		<GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
