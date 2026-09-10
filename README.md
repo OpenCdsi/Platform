@@ -328,7 +328,7 @@ not just `Backend.slnx`.
 ## Run the whole pipeline yourself
 
 ```bash
-dotnet run --project src/Cdsi.Demo
+dotnet run --project src/OpenCdsi.VaxEngine.Demo
 ```
 
 Loads all 30 real antigens + the schedule via `ReferenceDataRepository` (now extended to also
