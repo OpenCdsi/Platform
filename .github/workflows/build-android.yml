@@ -181,6 +181,38 @@ jobs:
           [IO.File]::WriteAllBytes($path, $bytes)
           echo "cert_path=$path" >> $env:GITHUB_OUTPUT
 
+      # Diagnostic only, TEMPORARY - MakeAppx's own APPX0105/APPX0107 errors ("may be password
+      # protected") have been wrong four runs straight (two genuinely different PFX encodings,
+      # two independently re-verified password transports, byte-identical error every time) -
+      # MSBuild's canned message isn't telling us the real cause. This imports the exact same
+      # file+password with .NET's own X509Certificate2 and prints its actual exception instead,
+      # plus the file's size/hash so a corrupted-in-transit secret can be told apart from a
+      # genuinely bad cert. Remove once the real cause is found and fixed.
+      - name: DIAGNOSTIC - verify cert import directly
+        shell: pwsh
+        run: |
+          $path = "${{ steps.cert.outputs.cert_path }}"
+          $bytes = [IO.File]::ReadAllBytes($path)
+          Write-Host "File size: $($bytes.Length) bytes"
+          $hash = (Get-FileHash -Path $path -Algorithm SHA256).Hash
+          Write-Host "SHA256: $hash"
+          Write-Host "First 16 bytes (hex): $([BitConverter]::ToString($bytes[0..15]))"
+          try {
+            $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+              $path, "${{ secrets.WINDOWS_MSIX_CERT_PASSWORD }}",
+              [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::DefaultKeySet)
+            Write-Host "IMPORT SUCCEEDED"
+            Write-Host "Subject: $($cert.Subject)"
+            Write-Host "Thumbprint: $($cert.Thumbprint)"
+            Write-Host "HasPrivateKey: $($cert.HasPrivateKey)"
+            Write-Host "NotBefore: $($cert.NotBefore)  NotAfter: $($cert.NotAfter)"
+          } catch {
+            Write-Host "IMPORT FAILED"
+            Write-Host "Exception type: $($_.Exception.GetType().FullName)"
+            Write-Host "Message: $($_.Exception.Message)"
+            Write-Host "Full: $($_.Exception | Format-List -Force | Out-String)"
+          }
+
       # No separate Restore step, for the same reason as the Android job (see its own comment):
       # the standalone `dotnet restore` verb doesn't support -f/--framework in any form - every
       # combination tried here (raw -p:TargetFramework=, -r, -f space-separated, -f colon-attached,
