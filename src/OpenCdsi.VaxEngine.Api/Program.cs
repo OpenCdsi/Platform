@@ -47,6 +47,9 @@ builder.Services.AddSwaggerGen(options =>
             </dl>
             """
     });
+
+    // Pin the tag section order in Swagger UI (VaxEngine above Supporting Data) - see the filter.
+    options.DocumentFilter<TagOrderDocumentFilter>();
 });
 
 // The reference data catalog (30 antigen files + Schedule) is expensive XML parsing - loaded
@@ -229,7 +232,8 @@ app.MapGet("/health", (ReferenceDataRepository data) => Results.Ok(new
         vaccineGroupCount = data.VaccineGroups.Count
     }
 }))
-.WithName("HealthCheck");
+.WithName("HealthCheck")
+.WithTags("VaxEngine");
 
 app.MapPost("/api/v3/forecast", (ForecastRequestDto request, ReferenceDataRepository data) =>
 {
@@ -244,7 +248,7 @@ app.MapPost("/api/v3/forecast", (ForecastRequestDto request, ReferenceDataReposi
     return Results.Ok(ResponseMapping.ToResponse(request.PatientId, assessmentDate, results));
 })
 .WithName("GenerateForecast")
-.WithTags("Forecast");
+.WithTags("VaxEngine");
 
 // The §4.4/§6 EVALUATION half of the same process /forecast exposes the §7-§9 forecast half of:
 // how each already-administered dose graded out (Valid / Not Valid / Extraneous / Sub-standard),
@@ -264,7 +268,7 @@ app.MapPost("/api/v3/evaluate", (ForecastRequestDto request, ReferenceDataReposi
     return Results.Ok(EvaluationResponseMapping.ToResponse(request.PatientId, assessmentDate, doses, result));
 })
 .WithName("EvaluateDoses")
-.WithTags("Evaluation");
+.WithTags("VaxEngine");
 
 // Reference-data browsing endpoints (GET /api/v3/antigens|vaccines|vaccines/groups|observations/*)
 // - mirrors the shape of an existing NodeJS "CDSi Supporting Data API" this project is
