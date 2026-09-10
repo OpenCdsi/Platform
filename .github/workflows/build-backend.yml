@@ -5,7 +5,7 @@
 # Backend.slnx, Mobile.slnx, Platform.slnx at the root) - this workflow is scoped to Backend.slnx's
 # own dependency set via the paths filter below, so a Demo/Conformance-only or Mobile-only change
 # doesn't trigger it. See build-engine.yml for the Core/Contracts/Demo counterpart, and
-# build-android.yml for Mobile.
+# build-mobile.yml for Mobile.
 #
 # Api.Tests boots the real API host (WebApplicationFactory<Program>) and resolves data/ at
 # runtime by walking up to Platform.slnx at the repo root (see FindDataDirectory in

@@ -8,7 +8,7 @@
 # fetch can still grab a stale commit. This sidesteps that class of mistake entirely by never
 # touching or relying on local main's position, only the just-fetched origin/main.
 #
-# Pushing the tag triggers .github/workflows/build-android.yml's release job: builds Android +
+# Pushing the tag triggers .github/workflows/build-mobile.yml's release job: builds Android +
 # Windows (x64/arm64), then attaches all three to a GitHub Release for this tag.
 #
 # This repo is a monorepo with several independently-tagged solutions (engine-v*, mobile-v*,

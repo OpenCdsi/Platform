@@ -4,7 +4,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #
 # Generates the self-signed code-signing certificate used to sign the Windows MSIX release
-# builds for OpenCdsi Mobile (see build-windows in .github/workflows/build-android.yml). This is
+# builds for OpenCdsi Mobile (see build-windows in .github/workflows/build-mobile.yml). This is
 # a one-time setup step, not something CI re-runs per build - the same certificate has to keep
 # signing every release, or testers would need to re-trust a new one (and re-install) every time.
 #

@@ -5,7 +5,7 @@
 # Backend.slnx, Mobile.slnx, Platform.slnx at the root) - this workflow is scoped to Engine.slnx's
 # own dependency set via the paths filter below, so an Api/Functions-only or Mobile-only change
 # doesn't trigger it. See build-backend.yml for the Api/Functions counterpart, and
-# build-android.yml for Mobile.
+# build-mobile.yml for Mobile.
 #
 # Core.Tests and Conformance.Tests are run as two SEPARATE steps, deliberately treated
 # differently, rather than one `dotnet test Engine.slnx` covering both:

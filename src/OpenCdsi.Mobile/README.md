@@ -112,7 +112,7 @@ dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-android
 ```
 
 CI builds Android and Windows (x64 + arm64, signed MSIX) on every push/PR touching this app's
-source (or the Engine source it depends on) — see `.github/workflows/build-android.yml`.
+source (or the Engine source it depends on) — see `.github/workflows/build-mobile.yml`.
 Pushing a `mobile-vX.Y.Z` tag additionally stamps that version into the build
 (`ApplicationDisplayVersion`/`ApplicationVersion`, and the MSIX `Identity` version) and
 publishes the signed APK, both MSIX packages, and the signing certificate to a GitHub Release
