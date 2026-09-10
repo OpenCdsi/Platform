@@ -1,0 +1,117 @@
+# Builds a Docker image of src/OpenCdsi.VaxEngine.Api (from the root Dockerfile) and pushes it to
+# this repo's GitHub Container Registry namespace whenever a backend-vX.Y.Z tag is pushed.
+#
+# This repo is a monorepo with several independently-tagged solutions (Engine, Backend, Mobile) -
+# each release is tagged with its own prefix. This workflow only reacts to the backend-v prefix,
+# the same way publish-nuget.yml only reacts to engine-v* and build-mobile.yml's release job only
+# reacts to mobile-v*. An engine- or mobile-only release does not build or push this image.
+#
+# Companion workflows:
+#   - build-backend.yml   builds + tests Backend.slnx on every push/PR (the CI gate)
+#   - publish-nuget.yml   publishes OpenCdsi.VaxEngine.Core to GitHub Packages on engine-v*
+#   - build-mobile.yml    builds the Mobile app + cuts a GitHub Release on mobile-v*
+# This file is the Backend counterpart to publish-nuget.yml: same "valid semver + reachable from
+# main" up-front guardrails, but the artifact is a container image on ghcr.io rather than a NuGet
+# package.
+#
+# The image does NOT bake in the reference data under data/ - the Dockerfile deliberately expects
+# it mounted at /data (see the Dockerfile's own CDSI_DATA_PATH comment and README's "top priority
+# is easy updates"). A CDC schedule update is a volume content change, not an image rebuild.
+#
+# The trigger glob (backend-v*.*.*) is deliberately permissive - GitHub Actions' tag filter can't
+# express real semver - so the strict check happens in the "Validate tag" step below with a clear
+# failure message rather than a vague downstream error on a tag like "backend-v1.2".
+
+name: Publish Backend API image to GHCR
+
+on:
+  push:
+    tags:
+      - 'backend-v*.*.*'
+  workflow_dispatch:
+
+# ghcr.io needs packages:write; contents:read is enough for the checkout and the
+# reachable-from-main check.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history + tags: needed for the "is this tag reachable from main" check below.
+          fetch-depth: 0
+
+      - name: Validate tag is real semver
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Full semver 2.0.0 pattern (semver.org's own regex), applied after stripping the
+          # required leading "backend-v" - rejects "backend-v1.2", "v1.2.3", etc. with a clear
+          # message rather than letting a malformed version reach the image tags.
+          if [[ ! "$TAG" =~ ^backend-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?$ ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver tag (expected format: backend-v1.2.3, with an optional -prerelease or +build suffix). Not publishing."
+            exit 1
+          fi
+          VERSION="${TAG#backend-v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Validated tag $TAG -> image version $VERSION"
+
+      - name: Verify tag is reachable from main
+        run: |
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Tag ${GITHUB_REF_NAME} (commit ${GITHUB_SHA}) is not reachable from main. Refusing to publish an image from a tag that isn't actually on the main branch."
+            exit 1
+          fi
+          echo "Confirmed: ${GITHUB_REF_NAME} is reachable from main."
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ghcr.io/<owner>/platform/vaxengine-api - namespaced under the repo name so the monorepo's
+      # other solutions can publish their own images later without colliding. Lowercased because
+      # the registry requires it and github.repository keeps the repo's original casing.
+      - name: Compute image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}/vaxengine-api" >> "$GITHUB_OUTPUT"
+
+      # metadata-action turns the git tag into the image tag ladder: :1.2.3 always, plus :1.2,
+      # :1 and :latest for a real release - and, because the pattern has an explicit prerelease
+      # group, a backend-v1.2.3-rc.1 tag yields only :1.2.3-rc.1 and never moves :latest.
+      - name: Compute image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          # latest=auto: :latest follows the newest stable release and is left untouched by a
+          # prerelease tag (metadata-action detects the -rc.N suffix on {{version}}).
+          flavor: latest=auto
+          tags: |
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}},value=${{ steps.version.outputs.version }}
+            type=sha,prefix=sha-,format=long
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

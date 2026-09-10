@@ -1394,6 +1394,39 @@ image. `ReferenceDataRepository` is loaded once at startup as a singleton and re
 (not lazily on first request), so a bad data path fails fast with a clear startup error instead
 of surfacing as a confusing 500 on an EHR integration's first real request.
 
+### Published image on GHCR
+
+`docker-compose.yml` builds the image locally; for a released, pullable image there's
+`.github/workflows/publish-backend-image.yml`. It's the Backend counterpart to
+`publish-nuget.yml` (which publishes `OpenCdsi.VaxEngine.Core` on `engine-v*` tags) and to
+`build-mobile.yml`'s release job (`mobile-v*` tags): pushing a `backend-vX.Y.Z` tag builds the
+root `Dockerfile` and pushes it to `ghcr.io/opencdsi/platform/vaxengine-api`.
+
+Same up-front guardrails as the NuGet workflow: the tag must be valid semver (`backend-v1.2.3`,
+optionally `-rc.1` / `+build`) and the tagged commit must be reachable from `main`, both checked
+before anything is built or pushed.
+
+Image tags (via `docker/metadata-action`):
+
+| Git tag              | Image tags produced                                          |
+| -------------------- | ----------------------------------------------------------- |
+| `backend-v1.2.3`     | `1.2.3`, `1.2`, `1`, `latest`, `sha-<commit>`                |
+| `backend-v1.2.3-rc.1`| `1.2.3-rc.1`, `sha-<commit>` (no `latest`, no `1.2` / `1`)   |
+
+The data volume still isn't baked in (see above) - a released image is run the same way as the
+local one:
+
+```bash
+docker run -p 8080:8080 -v "$PWD/data:/data:ro" \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  ghcr.io/opencdsi/platform/vaxengine-api:latest
+```
+
+First-tag setup: the workflow uses the built-in `GITHUB_TOKEN` (`packages: write`), so no PAT is
+needed, but the package is created private under the org - set its visibility to public in the
+package settings after the first successful run if that's wanted. This is the same class of
+first-publish friction documented for the NuGet package in `OpenCdsi.VaxEngine.Core.csproj`.
+
 ### Package versions, chosen deliberately rather than left to "latest"
 
 This sandbox still can't reach nuget.org (not in the allowed-domains list) or execute `dotnet
