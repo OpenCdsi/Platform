@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+using OpenCdsi.VaxEngine.Core.Evaluation;
 using OpenCdsi.VaxEngine.Core.Models;
 using OpenCdsi.VaxEngine.Core.Pipeline;
 using OpenCdsi.VaxEngine.Core.ReferenceData;
@@ -10,6 +11,12 @@ using OpenCdsi.VaxEngine.Core.ReferenceData;
 // through GeneratePatientForecast end to end - the whole pipeline, real data, nothing mocked.
 // §6.2's "Completed Series" condition is resolved internally via two evaluation passes -
 // GeneratePatientForecast handles this on its own, no caller-supplied resolver needed anymore.
+//
+// Uses ExecuteWithDoseDetail so it can print BOTH halves of the process: the §7-§9 forecast
+// (what's due next, per vaccine group) AND the §4.4/§6 evaluation (how each already-administered
+// dose graded out, per antigen). This is deliberately the raw per-antigen view, not the
+// collapsed-by-dose shape the /api/v3/evaluate endpoint returns - the antigen explosion (one
+// combination shot -> one row per contained antigen) is the more instructive thing to see here.
 
 var dataRoot = FindDataDirectory();
 Console.WriteLine($"Loading full CDC catalog from: {dataRoot}");
@@ -40,6 +47,17 @@ RunPatient("15-month-old, partway through routine schedule", fifteenMonthOldDob,
     new VaccineDoseAdministered { DoseId = "d4", Cvx = "110", DateAdministered = fifteenMonthOldDob.AddMonths(4) },      // DTaP-HepB-IPV dose 2
 });
 
+// Chosen to make the evaluation output actually show something other than "Valid": DTaP dose 2
+// given only ~2 weeks after dose 1 fails the minimum interval. CVX 20 is plain DTaP (Diphtheria +
+// Tetanus + Pertussis), so one bad dose produces a "Not Valid" row for all three antigens - the
+// antigen explosion working on a failure, not just a pass.
+var toddlerDob = today.AddMonths(-18);
+RunPatient("18-month-old, DTaP dose 2 given too soon after dose 1", toddlerDob, new[]
+{
+    new VaccineDoseAdministered { DoseId = "d1", Cvx = "20", DateAdministered = toddlerDob.AddMonths(2) },              // DTaP dose 1
+    new VaccineDoseAdministered { DoseId = "d2", Cvx = "20", DateAdministered = toddlerDob.AddMonths(2).AddDays(14) },  // DTaP dose 2 - too soon
+});
+
 void RunPatient(string label, DateOnly dob, IReadOnlyList<VaccineDoseAdministered> doses)
 {
     Console.WriteLine($"=== {label} (DOB {dob:yyyy-MM-dd}, assessed {today:yyyy-MM-dd}) ===");
@@ -47,9 +65,39 @@ void RunPatient(string label, DateOnly dob, IReadOnlyList<VaccineDoseAdministere
 
     var patient = new Patient { PatientId = label, DateOfBirth = dob };
 
-    var results = GeneratePatientForecast.Execute(
+    var result = GeneratePatientForecast.ExecuteWithDoseDetail(
         patient, doses, repo.AllSeries, repo.Schedule, repo.VaccineGroups,
         repo.ImmunityByAntigen, repo.ContraindicationsByAntigen, today);
+    var results = result.VaccineGroupForecasts;
+
+    // --- §4.4/§6 evaluation: how each administered dose graded out ---
+    if (doses.Count > 0)
+    {
+        Console.WriteLine("  Dose evaluation (per antigen - one administered dose can grade against several):");
+        foreach (var (antigen, history) in result.DoseDetailsByAntigen.OrderBy(kv => kv.Key))
+        {
+            if (history.DoseResults.Count == 0)
+            {
+                continue;
+            }
+            var seriesState = history.SeriesComplete
+                ? "series complete"
+                : $"next target dose #{history.CurrentTargetDoseNumber}";
+            Console.WriteLine($"    {antigen} ({seriesState})");
+            foreach (var r in history.DoseResults)
+            {
+                var status = r.Result.TargetDoseStatus == TargetDoseStatus.Skipped
+                    ? "Skipped"
+                    : r.Result.EvaluationStatus?.ToString() ?? "Skipped";
+                var target = r.Result.TargetDoseStatus == TargetDoseStatus.Skipped || r.TargetDoseNumber is null
+                    ? ""
+                    : $" vs target dose #{r.TargetDoseNumber}";
+                var reason = string.IsNullOrEmpty(r.Result.Reason) ? "" : $" - {r.Result.Reason}";
+                Console.WriteLine($"      CVX {r.AdministeredDose.Cvx} on {r.AdministeredDose.DateAdministered:yyyy-MM-dd}: {status}{target}{reason}");
+            }
+        }
+        Console.WriteLine();
+    }
 
     Console.WriteLine($"Vaccine group forecasts produced: {results.Count}");
     Console.WriteLine();

@@ -337,17 +337,20 @@ dotnet run --project src/OpenCdsi.VaxEngine.Demo
 ```
 
 Loads all 30 real antigens + the schedule via `ReferenceDataRepository` (now extended to also
-load immunity/contraindication data and vaccine groups — see below), then runs three sample
-patients — a newborn with no doses, a 2-month-old with just the HepB birth dose, and a
-15-month-old partway through the routine schedule — through `GeneratePatientForecast`,
-printing each vaccine group's status and forecast dates as real output you can read.
+load immunity/contraindication data and vaccine groups — see below), then runs four sample
+patients — a newborn with no doses, a 2-month-old with just the HepB birth dose, a 15-month-old
+partway through the routine schedule, and an 18-month-old whose DTaP dose 2 was given too soon
+after dose 1 — through `GeneratePatientForecast.ExecuteWithDoseDetail`, printing **both** halves
+of the process as real output you can read: the §4.4/§6 evaluation (how each administered dose
+graded out, per antigen — a combination shot like CVX 110 grades against Diphtheria, Tetanus,
+Pertussis, HepB and Polio independently, and the fourth patient shows a "Not Valid — Too soon"
+landing on all three DTaP antigens at once) and the §7–§9 forecast (each vaccine group's status
+and dates). The evaluation view here is deliberately the raw per-antigen one, not the
+collapsed-by-dose shape `POST /api/v3/evaluate` returns.
 
-**Couldn't be run or verified from this environment** — this sandbox has no `dotnet` runtime, so
-this hasn't been executed or checked against real output the way `dotnet test` results have been
-throughout this project. Every function it calls into has its own tests that do pass, and the
-wiring was checked field-by-field against each type's real definition before being written, but
-this specific combination — the full 30-antigen catalog, these specific sample patients — is
-genuinely unverified. If something looks off when you run it, that's real signal, not noise.
+Some earlier revisions of this section were written before this sandbox could run `dotnet` — the
+demo now builds and runs clean against the full 30-antigen catalog. If something looks off when
+you run it, that's still real signal.
 
 `ReferenceDataRepository` was extended this round (backward compatible — existing `.AllSeries`/
 `.Schedule` usage is untouched) to also load `ImmunityByAntigen`, `ContraindicationsByAntigen`,
