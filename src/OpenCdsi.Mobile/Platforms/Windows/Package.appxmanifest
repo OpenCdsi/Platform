@@ -13,7 +13,12 @@
        (Identity Version needs exactly four numeric parts, unlike ApplicationDisplayVersion). -->
   <Identity Name="OpenCdsi.OpenCdsiMobile" Publisher="CN=OpenCdsi" Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="$guid9$" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <!-- PhoneProductId must be a real GUID, not the $guid9$ token the MAUI template ships with -
+       that token is only ever substituted by Visual Studio's own new-project wizard, never by an
+       MSBuild-time target, so a manifest copied straight from the template package (as this one
+       was) keeps the literal string unless fixed by hand - confirmed by a real CI failure,
+       MakeAppx error C00CE169 rejecting it against the GUID schema pattern. -->
+  <mp:PhoneIdentity PhoneProductId="2c3e4dc0-1937-4be4-bac7-3a0372533882" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>$placeholder$</DisplayName>
