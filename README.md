@@ -1406,6 +1406,12 @@ Same up-front guardrails as the NuGet workflow: the tag must be valid semver (`b
 optionally `-rc.1` / `+build`) and the tagged commit must be reachable from `main`, both checked
 before anything is built or pushed.
 
+The image is built for **`linux/amd64` and `linux/arm64`** (the latter for Apple Silicon and ARM
+servers) and published as a single multi-arch manifest, so `docker pull` picks the right one
+automatically. The root `Dockerfile` cross-compiles the .NET build (`dotnet publish -a
+$TARGETARCH` from a `$BUILDPLATFORM`-pinned build stage) rather than emulating it - see the
+Dockerfile's own header for why.
+
 Image tags (via `docker/metadata-action`):
 
 | Git tag              | Image tags produced                                          |

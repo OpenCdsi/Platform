@@ -1,7 +1,19 @@
 # syntax=docker/dockerfile:1
 
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# Multi-arch build (linux/amd64 + linux/arm64, the latter for Apple Silicon and ARM servers).
+#
+# The build stage is pinned to $BUILDPLATFORM - it always runs natively on the builder's own
+# architecture, never under QEMU emulation - and cross-compiles for the requested $TARGETARCH via
+# `dotnet restore/publish -a`. This is Microsoft's own recommended pattern for .NET images
+# (dotnet/dotnet-docker samples): an emulated `dotnet publish` is extremely slow, a cross-compiled
+# one is not. `-a $TARGETARCH` sets only the RID's architecture and does NOT imply a self-contained
+# publish, so the output stays framework-dependent and runs on the plain aspnet runtime image.
+#
+# The runtime stage has no --platform pin, so buildx builds it for $TARGETPLATFORM. Its only RUN
+# (the curl install below) does run under emulation for the non-native arch, but it's a single
+# small package and costs seconds, unlike an emulated full build.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG TARGETARCH
 WORKDIR /src
 
 # Only the .csproj files OpenCdsi.VaxEngine.Api actually depends on (itself, OpenCdsi.VaxEngine.Contracts, OpenCdsi.VaxEngine.Core) are
@@ -13,14 +25,15 @@ WORKDIR /src
 COPY src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj src/OpenCdsi.VaxEngine.Core/
 COPY src/OpenCdsi.VaxEngine.Contracts/OpenCdsi.VaxEngine.Contracts.csproj src/OpenCdsi.VaxEngine.Contracts/
 COPY src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj src/OpenCdsi.VaxEngine.Api/
-RUN dotnet restore src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj
+RUN dotnet restore src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj -a $TARGETARCH
 
 COPY src/OpenCdsi.VaxEngine.Core/ src/OpenCdsi.VaxEngine.Core/
 COPY src/OpenCdsi.VaxEngine.Contracts/ src/OpenCdsi.VaxEngine.Contracts/
 COPY src/OpenCdsi.VaxEngine.Api/ src/OpenCdsi.VaxEngine.Api/
-RUN dotnet publish src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj -c Release -o /app --no-restore
+RUN dotnet publish src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj -c Release -a $TARGETARCH -o /app --no-restore
 
-# Runtime stage - the smaller ASP.NET runtime image, not the full SDK.
+# Runtime stage - the smaller ASP.NET runtime image, not the full SDK. No --platform pin, so this
+# is built for the target arch.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
