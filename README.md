@@ -48,6 +48,7 @@ Relevant Patient Series modules. Chapter 6 onward has not been written yet; see 
 | Select Best Patient Series | §8 | ✅ Complete — all of §8.1-8.8 implemented + tested (Pre-Filter, Identify One Prioritized, Classify Scorable, all three point-scoring tables, Select Prioritized, Determine Best) |
 | Vaccine Group Merge | §9 | ✅ Complete — all of §9.1-9.3's business rules implemented + tested, including FORECASTVG-1 (containment), FORECASTVG-8 (recommended antigen), and FORECASTVG-9 (recommended vaccine aggregation) |
 | **End-to-end pipeline** | — | ✅ **Complete** — `GeneratePatientForecast` wires §4.2/§5.1 → §4.4/§6 → §7 → §8 → §9 into one call: raw administered doses in, merged vaccine group forecasts out. See "The pipeline is complete" below |
+| **Evaluation & Forecast APIs** | — | ✅ Both process halves exposed over HTTP, on both the `Cdsi.Api` and `Cdsi.Functions` surfaces: `POST /api/v3/forecast` (§7–§9, what's due next) and `POST /api/v3/evaluate` (§4.4/§6, per-dose Valid/Not Valid/Extraneous grading, collapsed to one row per physical dose) |
 
 ## The orchestrator (§4.4) — what it unlocked, and what's still deferred
 
@@ -279,17 +280,21 @@ src/OpenCdsi.VaxEngine.Demo/
                      GeneratePatientForecast end to end, printing real forecast output.
                      `dotnet run --project src/OpenCdsi.VaxEngine.Demo` from the repo root.
 src/OpenCdsi.VaxEngine.Api/
-                     Minimal-API ASP.NET Core web service wrapping GeneratePatientForecast.
-                     `dotnet run --project src/OpenCdsi.VaxEngine.Api`, or
+                     Minimal-API ASP.NET Core web service wrapping GeneratePatientForecast -
+                     POST /api/v3/forecast (§7-§9) and POST /api/v3/evaluate (§4.4/§6 per-dose
+                     grading). `dotnet run --project src/OpenCdsi.VaxEngine.Api`, or
                      `docker compose up --build` from the repo root — see
                      "Cdsi.Api — the dockerized web API" below.
 src/OpenCdsi.VaxEngine.Contracts/
                      Request/response DTOs and their mapping to/from Core's domain models -
                      shared between Api and Functions, so both API surfaces produce and consume
-                     identical JSON shapes from one implementation, not two.
+                     identical JSON shapes from one implementation, not two. ForecastRequestDto
+                     is the shared input for both /forecast and /evaluate;
+                     EvaluationResponseMapping holds the per-antigen dose-collapse rule.
 src/OpenCdsi.VaxEngine.Functions/
                      Azure Functions (isolated worker) - the same GeneratePatientForecast call,
-                     as a second API surface. See "Cdsi.Functions — Azure Functions as a second
+                     as a second API surface. `GenerateForecast` and `Evaluate` functions mirror
+                     Api's two endpoints. See "Cdsi.Functions — Azure Functions as a second
                      API surface" below, including honest caveats about what's unverified.
 tests/OpenCdsi.VaxEngine.Api.Tests/
                      Real HTTP integration tests via WebApplicationFactory<Program> - the
@@ -1363,11 +1368,18 @@ as a follow-up gap.
 - `GET /health` - liveness/readiness check, also reports how much reference data loaded
   (antigen/series/vaccine-group counts) - useful for confirming the data volume mount actually
   worked, not just that the process is up.
-- `POST /api/v1/forecast` - the real thing. Request body maps directly to `Patient`/
-  `VaccineDoseAdministered` (see `Contracts/ForecastRequestDto.cs`); response is one entry per
-  vaccine group forecast (see `Contracts/ForecastResponseDto.cs`), with enums represented as
-  their string names (`"NotComplete"`, `"SingleAntigen"`, etc.) rather than numbers, for a JSON
-  API a real EHR integration will actually read by hand while debugging.
+- `POST /api/v3/forecast` - the §7-§9 forecast: what's due next. Request body maps directly to
+  `Patient`/`VaccineDoseAdministered` (see `Contracts/ForecastRequestDto.cs`); response is one
+  entry per vaccine group forecast (see `Contracts/ForecastResponseDto.cs`), with enums
+  represented as their string names (`"NotComplete"`, `"SingleAntigen"`, etc.) rather than
+  numbers, for a JSON API a real EHR integration will actually read by hand while debugging.
+- `POST /api/v3/evaluate` - the §4.4/§6 evaluation: how each already-administered dose graded
+  out (Valid / Not Valid / Extraneous / Sub-standard), the other half of the same process.
+  Identical request body to `/forecast`; response is one row per physical dose (see
+  `Contracts/EvaluationResponseDto.cs`), collapsing the engine's per-antigen grading to one
+  headline per shot - most permissive status wins, disagreements spelled out in `conflictText`.
+  Aimed at onboarding people to the CDSi process model and at clinician-facing patient
+  communication; human-readable reason text is a separate project.
 
 ### The data volume, not baked into the image
 
@@ -1502,6 +1514,13 @@ intended `/health`, breaking parity with `Cdsi.Api`. Fixed by setting `routePref
 the default prefix entirely) and writing each function's own `Route` attribute to spell out the
 full intended path explicitly (`"api/v1/forecast"`, `"health"`) - full, explicit control instead
 of relying on a default that didn't do what was needed here.
+
+The later `Evaluate` function (`EvaluateFunction`, `"api/v1/evaluate"`, also
+`AuthorizationLevel.Function`) follows the same pattern - a separate class from `ForecastFunction`
+rather than a second method on it, mirroring the two distinct halves of the CDSi process
+(evaluate administered doses vs. forecast what's next). It reuses `ForecastRequestDto` verbatim
+and `GeneratePatientForecast.ExecuteWithDoseDetail` (the same call that already backs the
+per-dose conformance detail), mapping through `EvaluationResponseMapping`.
 
 ### A deliberate design difference from `Cdsi.Api`, not an oversight
 

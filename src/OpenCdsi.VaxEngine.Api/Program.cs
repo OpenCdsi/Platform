@@ -36,7 +36,7 @@ builder.Services.AddSwaggerGen(options =>
             Real-time immunization forecasting per the CDC's CDSi Logic Specification v4.6.
 
             <h3>Query Parameters</h3>
-            <p>The following query parameters can be added to the URL of any Supporting Data (GET) endpoint to adjust the response. They don't apply to the Forecast endpoint.</p>
+            <p>The following query parameters can be added to the URL of any Supporting Data (GET) endpoint to adjust the response. They don't apply to the Forecast or Evaluate endpoints.</p>
             <dl>
               <dt>q</dt>
               <dd>Return only the objects containing the given value.<i>&nbsp;&nbsp;/api/v3/antigens/HepA/series?q=risk</i></dd>
@@ -245,6 +245,26 @@ app.MapPost("/api/v3/forecast", (ForecastRequestDto request, ReferenceDataReposi
 })
 .WithName("GenerateForecast")
 .WithTags("Forecast");
+
+// The §4.4/§6 EVALUATION half of the same process /forecast exposes the §7-§9 forecast half of:
+// how each already-administered dose graded out (Valid / Not Valid / Extraneous / Sub-standard),
+// collapsed to one row per physical dose. Same request body as /forecast - reuses
+// GeneratePatientForecast.ExecuteWithDoseDetail (the forecast is computed too, just not returned
+// here). See EvaluationResponseMapping for the per-antigen collapse rule.
+app.MapPost("/api/v3/evaluate", (ForecastRequestDto request, ReferenceDataRepository data) =>
+{
+    var patient = RequestMapping.ToPatient(request);
+    var doses = RequestMapping.ToAdministeredDoses(request);
+    var assessmentDate = RequestMapping.ResolveAssessmentDate(request, DateOnly.FromDateTime(DateTime.UtcNow));
+
+    var result = GeneratePatientForecast.ExecuteWithDoseDetail(
+        patient, doses, data.AllSeries, data.Schedule, data.VaccineGroups,
+        data.ImmunityByAntigen, data.ContraindicationsByAntigen, assessmentDate);
+
+    return Results.Ok(EvaluationResponseMapping.ToResponse(request.PatientId, assessmentDate, doses, result));
+})
+.WithName("EvaluateDoses")
+.WithTags("Evaluation");
 
 // Reference-data browsing endpoints (GET /api/v3/antigens|vaccines|vaccines/groups|observations/*)
 // - mirrors the shape of an existing NodeJS "CDSi Supporting Data API" this project is
