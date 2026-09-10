@@ -253,7 +253,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: opencdsi-mobile-windows-x64
-          path: AppPackages/x64/**/*.msix
+          # AppxPackageDir resolves relative to the project directory, not the repo root the
+          # upload step runs from - confirmed by a real CI failure ("No files were found") against
+          # the actual output path logged by the Publish step above: src/OpenCdsi.Mobile/AppPackages/...
+          path: src/OpenCdsi.Mobile/AppPackages/x64/**/*.msix
           if-no-files-found: error
 
       # Same as the win-x64 publish above, just -r win-arm64/-p:Platform=ARM64 - for a native
@@ -279,7 +282,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: opencdsi-mobile-windows-arm64
-          path: AppPackages/arm64/**/*.msix
+          path: src/OpenCdsi.Mobile/AppPackages/arm64/**/*.msix
           if-no-files-found: error
 
   release:
