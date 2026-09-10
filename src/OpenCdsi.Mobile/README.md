@@ -29,10 +29,11 @@ trusts, there's a one-time setup step before the first install:
 
 ```
 https://github.com/OpenCdsi/Platform/releases/latest/download/opencdsi-mobile-signing-cert.cer
+https://github.com/OpenCdsi/Platform/releases/latest/download/opencdsi-mobile-x64.msix
+https://github.com/OpenCdsi/Platform/releases/latest/download/opencdsi-mobile-arm64.msix
 ```
 
-1. Download that `.cer` and the `.msix` for your architecture (x64 or arm64) from the same
-   release.
+1. Download the `.cer` and the `.msix` for your architecture (x64 or arm64).
 2. Trust the certificate once, in an **administrator** PowerShell:
    ```powershell
    Import-Certificate -FilePath .\opencdsi-mobile-signing-cert.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
