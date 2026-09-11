@@ -1394,17 +1394,19 @@ image. `ReferenceDataRepository` is loaded once at startup as a singleton and re
 (not lazily on first request), so a bad data path fails fast with a clear startup error instead
 of surfacing as a confusing 500 on an EHR integration's first real request.
 
-### Published image on GHCR
+### Released via `backend-v*` tags — image on GHCR + Functions on Azure
 
-`docker-compose.yml` builds the image locally; for a released, pullable image there's
-`.github/workflows/publish-backend-image.yml`. It's the Backend counterpart to
-`publish-nuget.yml` (which publishes `OpenCdsi.VaxEngine.Core` on `engine-v*` tags) and to
-`build-mobile.yml`'s release job (`mobile-v*` tags): pushing a `backend-vX.Y.Z` tag builds the
-root `Dockerfile` and pushes it to `ghcr.io/opencdsi/platform/vaxengine-api`.
+`docker-compose.yml` builds the image locally; for a released build there's
+`.github/workflows/release-backend.yml`, the Backend counterpart to `publish-nuget.yml`
+(`OpenCdsi.VaxEngine.Core` on `engine-v*` tags) and `build-mobile.yml`'s release job
+(`mobile-v*` tags). Pushing a `backend-vX.Y.Z` tag runs a shared `validate` job (valid semver +
+tag reachable from `main`, the same guardrails as the NuGet workflow) and then two **independent**
+jobs — a failure in one does not block the other:
 
-Same up-front guardrails as the NuGet workflow: the tag must be valid semver (`backend-v1.2.3`,
-optionally `-rc.1` / `+build`) and the tagged commit must be reachable from `main`, both checked
-before anything is built or pushed.
+| Job | Artifact |
+| --- | --- |
+| `publish-image` | multi-arch container image → `ghcr.io/opencdsi/platform/vaxengine-api` |
+| `deploy-functions` | `OpenCdsi.VaxEngine.Functions` → the Azure Functions app (Flex Consumption) |
 
 The image is built for **`linux/amd64` and `linux/arm64`** (the latter for Apple Silicon and ARM
 servers) and published as a single multi-arch manifest, so `docker pull` picks the right one
@@ -1428,10 +1430,69 @@ docker run -p 8080:8080 -v "$PWD/data:/data:ro" \
   ghcr.io/opencdsi/platform/vaxengine-api:latest
 ```
 
-First-tag setup: the workflow uses the built-in `GITHUB_TOKEN` (`packages: write`), so no PAT is
-needed, but the package is created private under the org - set its visibility to public in the
-package settings after the first successful run if that's wanted. This is the same class of
+First-image setup: the `publish-image` job uses the built-in `GITHUB_TOKEN` (`packages: write`),
+so no PAT is needed, but the package is created private under the org - set its visibility to
+public in the package settings after the first successful run if that's wanted. Same class of
 first-publish friction documented for the NuGet package in `OpenCdsi.VaxEngine.Core.csproj`.
+
+### Deploying Functions to Azure (`deploy-functions` job)
+
+The Functions half of `release-backend.yml` targets an existing **Flex Consumption** app, which
+constrains how it works:
+
+- **Auth is OIDC, not a publish profile.** Flex Consumption disables SCM basic-auth publish
+  profiles; deployment goes through the OneDeploy API with a bearer token. `azure/login`
+  exchanges the job's GitHub OIDC token for an Azure one. That token's subject is
+  `repo:opencdsi/platform:environment:azure-prod`, so the job runs in an `azure-prod` GitHub
+  environment and the federated credential on the Azure app registration must match that exact
+  subject.
+- **Reference data ships inside the package.** Flex Consumption has no bring-your-own Azure
+  Files content-share mount (that's Elastic Premium / Dedicated only), so the `deploy-functions`
+  job copies `data/` into the publish output. It lands at `/home/site/wwwroot/data`, and the
+  `CDSI_DATA_PATH` app setting points there. Unlike the container's volume model, **a CDC data
+  update means re-running this workflow**, not an independent file swap.
+- **`.NET 10` isolated on Flex Consumption is new** — see "Azure Functions .NET 10 support"
+  below for the two open upstream issues (`azure-functions-dotnet-worker` #3424, #3351) worth
+  checking against if a deploy succeeds but the worker won't start.
+
+One-time setup (needs an Azure login; the resources themselves already exist):
+
+```bash
+SUBSCRIPTION_ID="..."          # az account show --query id -o tsv
+RESOURCE_GROUP="..."           # RG containing the Function App
+FUNCTION_APP="..."             # the Flex Consumption app name
+REPO="OpenCdsi/Platform"
+APP_NAME="github-opencdsi-platform-deploy"
+
+az account set --subscription "$SUBSCRIPTION_ID"
+
+APP_ID=$(az ad app create --display-name "$APP_NAME" --query appId -o tsv)
+az ad sp create --id "$APP_ID"
+
+az ad app federated-credential create --id "$APP_ID" --parameters "{
+  \"name\": \"github-azure-prod\",
+  \"issuer\": \"https://token.actions.githubusercontent.com\",
+  \"subject\": \"repo:${REPO}:environment:azure-prod\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}"
+
+az role assignment create --assignee "$APP_ID" --role Contributor \
+  --scope "/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP}"
+
+az functionapp config appsettings set --name "$FUNCTION_APP" --resource-group "$RESOURCE_GROUP" \
+  --settings "CDSI_DATA_PATH=/home/site/wwwroot/data"
+
+echo "AZURE_CLIENT_ID       = $APP_ID"
+echo "AZURE_TENANT_ID       = $(az account show --query tenantId -o tsv)"
+echo "AZURE_SUBSCRIPTION_ID = $SUBSCRIPTION_ID"
+```
+
+Then in the repo:
+
+- **Settings → Environments → New environment** named `azure-prod` (no protection rules needed).
+- **Settings → Secrets and variables → Actions**:
+  - Secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (the three values printed above)
+  - Variable: `AZURE_FUNCTIONAPP_NAME` = the Function App name
 
 ### Package versions, chosen deliberately rather than left to "latest"
 

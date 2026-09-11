@@ -1,0 +1,201 @@
+# Backend release workflow - fires on a backend-vX.Y.Z tag push and does two independent things:
+#
+#   1. publish-image     builds the multi-arch container image of src/OpenCdsi.VaxEngine.Api
+#                        (root Dockerfile) and pushes it to ghcr.io/<owner>/platform/vaxengine-api
+#   2. deploy-functions   publishes src/OpenCdsi.VaxEngine.Functions and deploys it to the Azure
+#                        Functions app (Flex Consumption, .NET 10 isolated worker)
+#
+# Both hang off a shared `validate` job that does the "valid semver + reachable from main"
+# guardrails once - the same up-front checks publish-nuget.yml runs before touching the NuGet
+# registry. publish-image and deploy-functions do NOT depend on each other: a failure deploying
+# Functions must not leave the image unpushed, and vice versa.
+#
+# This repo is a monorepo with independently-tagged solutions (Engine, Backend, Mobile). This
+# workflow only reacts to the backend-v prefix, the same way publish-nuget.yml only reacts to
+# engine-v* and build-mobile.yml's release job to mobile-v*.
+#
+# Companion workflows:
+#   - build-backend.yml   builds + tests Backend.slnx on every push/PR (the CI gate)
+#   - publish-nuget.yml   publishes OpenCdsi.VaxEngine.Core to GitHub Packages on engine-v*
+#   - build-mobile.yml    builds the Mobile app + cuts a GitHub Release on mobile-v*
+#
+# The trigger glob (backend-v*.*.*) is deliberately permissive - GitHub Actions' tag filter can't
+# express real semver - so the strict check happens in the validate job with a clear failure
+# message rather than a vague downstream error on a tag like "backend-v1.2".
+
+name: Release Backend (image + Functions)
+
+on:
+  push:
+    tags:
+      - 'backend-v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  # ---------------------------------------------------------------------------------------------
+  # Shared guardrails - run once, feed both downstream jobs the computed version.
+  # ---------------------------------------------------------------------------------------------
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history + tags: needed for the "is this tag reachable from main" check below.
+          fetch-depth: 0
+
+      - name: Validate tag is real semver
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Full semver 2.0.0 pattern (semver.org's own regex), applied after stripping the
+          # required leading "backend-v" - rejects "backend-v1.2", "v1.2.3", etc. with a clear
+          # message rather than letting a malformed version reach the image tags.
+          if [[ ! "$TAG" =~ ^backend-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?$ ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver tag (expected format: backend-v1.2.3, with an optional -prerelease or +build suffix). Not releasing."
+            exit 1
+          fi
+          VERSION="${TAG#backend-v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Validated tag $TAG -> version $VERSION"
+
+      - name: Verify tag is reachable from main
+        run: |
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Tag ${GITHUB_REF_NAME} (commit ${GITHUB_SHA}) is not reachable from main. Refusing to release from a tag that isn't actually on the main branch."
+            exit 1
+          fi
+          echo "Confirmed: ${GITHUB_REF_NAME} is reachable from main."
+
+  # ---------------------------------------------------------------------------------------------
+  # Container image -> GHCR
+  # ---------------------------------------------------------------------------------------------
+  publish-image:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ghcr.io/<owner>/platform/vaxengine-api - namespaced under the repo name so the monorepo's
+      # other solutions can publish their own images later without colliding. Lowercased because
+      # the registry requires it and github.repository keeps the repo's original casing.
+      - name: Compute image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}/vaxengine-api" >> "$GITHUB_OUTPUT"
+
+      # metadata-action turns the version into the image tag ladder: :1.2.3 always, plus :1.2,
+      # :1 and :latest for a real release - and, because the pattern has an explicit prerelease
+      # group, a backend-v1.2.3-rc.1 tag yields only :1.2.3-rc.1 and never moves :latest.
+      - name: Compute image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.name }}
+          # latest=auto: :latest follows the newest stable release and is left untouched by a
+          # prerelease tag (metadata-action detects the -rc.N suffix on {{version}}).
+          flavor: latest=auto
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.validate.outputs.version }}
+            type=sha,prefix=sha-,format=long
+
+      # QEMU is only needed for the runtime stage's single small `apt-get install curl` on the
+      # non-native arch - the Dockerfile cross-compiles the .NET build natively (see its header),
+      # so there's no emulated build to be slow about.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------------------------
+  # Azure Functions -> Flex Consumption
+  #
+  # Auth is OIDC (no stored secret): azure/login exchanges the job's GitHub OIDC token for an
+  # Azure token. That token's subject is repo:<owner>/<repo>:environment:<environment name>, so
+  # this job MUST run in the `azure-prod` environment for the federated credential to match -
+  # see release-backend.yml's companion setup notes in the README.
+  #
+  # Flex Consumption specifics that ruled out the alternatives:
+  #   - no publish-profile / SCM basic auth -> OIDC is the only way in
+  #   - no bring-your-own Azure Files content-share mount -> the reference data under data/ is
+  #     copied into the publish output and ships inside the package; CDSI_DATA_PATH (an app
+  #     setting on the Function App) points at /home/site/wwwroot/data. A CDC data update is
+  #     therefore a re-run of this workflow, not an independent file swap - a real departure
+  #     from the container image's volume model, forced by the plan.
+  # ---------------------------------------------------------------------------------------------
+  deploy-functions:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: azure-prod
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Functions
+        run: >
+          dotnet publish src/OpenCdsi.VaxEngine.Functions/OpenCdsi.VaxEngine.Functions.csproj
+          -c Release
+          -o "${{ runner.temp }}/functions-publish"
+
+      # data/ isn't a build input of the Functions project (see its Program.cs comment) - it's
+      # dropped in at the package root here so it deploys to /home/site/wwwroot/data, where the
+      # CDSI_DATA_PATH app setting points.
+      - name: Bundle reference data
+        run: cp -r data "${{ runner.temp }}/functions-publish/data"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+          package: ${{ runner.temp }}/functions-publish
+          # sku spelled out rather than left to the action's ARM auto-detect - Flex Consumption
+          # uses the OneDeploy path, and being explicit avoids a first-run misroute.
+          sku: flexconsumption
+          # Fully-published output above (every dependency DLL present), so no server-side
+          # Oryx build.
+          remote-build: false
