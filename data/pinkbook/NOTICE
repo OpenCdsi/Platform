@@ -1,0 +1,31 @@
+NOTICE — Scope of this project's license
+
+The JSON files in this directory are hand-curated summaries of chapters from
+the Centers for Disease Control and Prevention's (CDC) "Epidemiology and
+Prevention of Vaccine-Preventable Diseases" (the "Pink Book"), 14th Edition,
+2021 — a work of the United States federal government.
+
+Unlike data/antigens and data/schedule, these files are NOT verbatim CDC
+data. Each summary was written by a contributor to this project (with AI
+assistance) by reading the original chapter text and condensing it into the
+schema defined in src/OpenCdsi.ClinicalReference/Models/AntigenChapter.cs.
+The specific wording, selection, and organization of each summary is this
+project's own work and is covered by the Mozilla Public License 2.0 that
+applies to the rest of this repository's source (see the LICENSE file at the
+repository root).
+
+The underlying facts and the CDC's original chapter text remain the CDC's
+own public-domain work. Works of the United States federal government are
+generally not subject to copyright protection within the United States
+under 17 U.S.C. § 105. This statement is provided for general information
+only and is not legal advice; confirm actual usage terms directly with the
+CDC, or with your own counsel, before relying on this content for any
+specific distribution or use — especially if you intend to reproduce the
+CDC's original chapter text rather than this project's own summaries of it.
+
+Each file's own "source" field names the specific Pink Book edition and the
+chapter's canonical CDC URL. These summaries are a snapshot as of that
+edition and are not kept in sync with CDC's live, continuously updated Pink
+Book website — consult CDC's own publication channels for the current,
+authoritative text. See CONTRIBUTING.md in this directory for how this
+content was produced and how to refresh it against a future edition.
