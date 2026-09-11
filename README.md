@@ -336,6 +336,25 @@ host's own output directory to `Platform.slnx` at the repo root (see `FindDataDi
 `Program.cs`) — also no manual setup, but it does mean those tests need `Platform.slnx` to exist,
 not just `Backend.slnx`.
 
+## Consuming the published NuGet packages
+
+`OpenCdsi.VaxEngine.Core` and `OpenCdsi.ClinicalReference` are both published to GitHub Packages
+under this org (`https://nuget.pkg.github.com/OpenCdsi/index.json`), tagged `engine-v*` and
+`clinref-v*` respectively (see `.github/workflows/publish-nuget.yml` and
+`publish-nuget-clinicalreference.yml`).
+
+**Reminder for anyone consuming these from outside this repo:** GitHub Packages requires
+authentication to pull NuGet packages even though this repo and both packages are public — there
+is no anonymous restore against `nuget.pkg.github.com`. You'll need a GitHub personal access
+token with the `read:packages` scope, added as a NuGet package source, e.g.:
+
+```bash
+dotnet nuget add source https://nuget.pkg.github.com/OpenCdsi/index.json --name OpenCdsi --username <your-github-username> --password <your-PAT>
+```
+
+Once that source is registered, browsing/searching "OpenCdsi" (Visual Studio's Package Manager UI,
+or `dotnet package search`) surfaces both packages, since they share the same org-level feed.
+
 ## Run the whole pipeline yourself
 
 ```bash
