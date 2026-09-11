@@ -1394,19 +1394,20 @@ image. `ReferenceDataRepository` is loaded once at startup as a singleton and re
 (not lazily on first request), so a bad data path fails fast with a clear startup error instead
 of surfacing as a confusing 500 on an EHR integration's first real request.
 
-### Released via `backend-v*` tags — image on GHCR + Functions on Azure
+### Released via `backend-v*` tags — image on GHCR
 
 `docker-compose.yml` builds the image locally; for a released build there's
 `.github/workflows/release-backend.yml`, the Backend counterpart to `publish-nuget.yml`
 (`OpenCdsi.VaxEngine.Core` on `engine-v*` tags) and `build-mobile.yml`'s release job
 (`mobile-v*` tags). Pushing a `backend-vX.Y.Z` tag runs a shared `validate` job (valid semver +
-tag reachable from `main`, the same guardrails as the NuGet workflow) and then two **independent**
-jobs — a failure in one does not block the other:
+tag reachable from `main`, the same guardrails as the NuGet workflow) and then `publish-image`
+(the multi-arch container image → `ghcr.io/opencdsi/platform/vaxengine-api`).
 
-| Job | Artifact |
-| --- | --- |
-| `publish-image` | multi-arch container image → `ghcr.io/opencdsi/platform/vaxengine-api` |
-| `deploy-functions` | `OpenCdsi.VaxEngine.Functions` → the Azure Functions app (Flex Consumption) |
+A `deploy-functions` job (`OpenCdsi.VaxEngine.Functions` → Azure Functions) was designed as a
+second, independent job off the same `validate` job, but Azure-side Function App creation hit
+problems and it's on the back burner for now - not wired into the workflow. The design (OIDC
+auth, Flex Consumption constraints, `data/` bundling) is kept below so it doesn't need
+re-deriving when that's picked back up.
 
 The image is built for **`linux/amd64` and `linux/arm64`** (the latter for Apple Silicon and ARM
 servers) and published as a single multi-arch manifest, so `docker pull` picks the right one
@@ -1435,10 +1436,15 @@ so no PAT is needed, but the package is created private under the org - set its 
 public in the package settings after the first successful run if that's wanted. Same class of
 first-publish friction documented for the NuGet package in `OpenCdsi.VaxEngine.Core.csproj`.
 
-### Deploying Functions to Azure (`deploy-functions` job)
+### Deploying Functions to Azure (deferred - not yet wired into the workflow)
 
-The Functions half of `release-backend.yml` targets an existing **Flex Consumption** app, which
-constrains how it works:
+**Status: on the back burner.** This section documents the intended design for a
+`deploy-functions` job, worked out before Azure-side Function App creation ran into problems.
+Nothing below is currently active - `release-backend.yml` only runs `publish-image`. Picking this
+back up means resolving the Azure App creation issue first, then re-adding `deploy-functions` as
+a sibling of `publish-image` under the workflow's `validate` job.
+
+The design targets an existing **Flex Consumption** app, which constrains how it works:
 
 - **Auth is OIDC, not a publish profile.** Flex Consumption disables SCM basic-auth publish
   profiles; deployment goes through the OneDeploy API with a bearer token. `azure/login`
