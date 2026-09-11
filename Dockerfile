@@ -16,18 +16,21 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG TARGETARCH
 WORKDIR /src
 
-# Only the .csproj files OpenCdsi.VaxEngine.Api actually depends on (itself, OpenCdsi.VaxEngine.Contracts, OpenCdsi.VaxEngine.Core) are
-# copied for the restore-caching step - restoring OpenCdsi.VaxEngine.Api.csproj directly (not the whole
-# OpenCdsi.VaxEngine.sln) means this image build never needs to know about OpenCdsi.VaxEngine.Demo, OpenCdsi.VaxEngine.Functions, or
-# either test project, none of which are part of what gets published here. Also means adding a
-# new project to the solution later doesn't require touching this Dockerfile unless OpenCdsi.VaxEngine.Api
+# Only the .csproj files OpenCdsi.VaxEngine.Api actually depends on (itself, OpenCdsi.VaxEngine.Contracts, OpenCdsi.VaxEngine.Core,
+# OpenCdsi.ClinicalReference) are copied for the restore-caching step - restoring
+# OpenCdsi.VaxEngine.Api.csproj directly (not the whole OpenCdsi.VaxEngine.sln) means this image
+# build never needs to know about OpenCdsi.VaxEngine.Demo, OpenCdsi.VaxEngine.Functions, or either
+# test project, none of which are part of what gets published here. Also means adding a new
+# project to the solution later doesn't require touching this Dockerfile unless OpenCdsi.VaxEngine.Api
 # itself gains a new dependency.
 COPY src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj src/OpenCdsi.VaxEngine.Core/
+COPY src/OpenCdsi.ClinicalReference/OpenCdsi.ClinicalReference.csproj src/OpenCdsi.ClinicalReference/
 COPY src/OpenCdsi.VaxEngine.Contracts/OpenCdsi.VaxEngine.Contracts.csproj src/OpenCdsi.VaxEngine.Contracts/
 COPY src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj src/OpenCdsi.VaxEngine.Api/
 RUN dotnet restore src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj -a $TARGETARCH
 
 COPY src/OpenCdsi.VaxEngine.Core/ src/OpenCdsi.VaxEngine.Core/
+COPY src/OpenCdsi.ClinicalReference/ src/OpenCdsi.ClinicalReference/
 COPY src/OpenCdsi.VaxEngine.Contracts/ src/OpenCdsi.VaxEngine.Contracts/
 COPY src/OpenCdsi.VaxEngine.Api/ src/OpenCdsi.VaxEngine.Api/
 RUN dotnet publish src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj -c Release -a $TARGETARCH -o /app --no-restore

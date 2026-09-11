@@ -1,0 +1,13 @@
+# Local build output must never reach the Docker build context - Dockerfile copies each
+# project's source directory wholesale (COPY src/<project>/ src/<project>/) *after* its own
+# restore step already produced a fresh, RID-correct obj/project.assets.json inside the image.
+# Without this, a local bin/obj left over from running `dotnet build`/`dotnet test` on the host
+# (any OS/RID) gets copied on top of that fresh restore output, silently overwriting it -
+# confirmed directly: this is exactly what caused a real local arm64 image build to fail with
+# NETSDK1047 ("doesn't have a target for net10.0/linux-arm64") despite the container's own
+# restore step succeeding and producing that exact target moments earlier.
+**/bin/
+**/obj/
+
+.git/
+.github/
