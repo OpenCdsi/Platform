@@ -15,6 +15,11 @@ namespace OpenCdsi.Mobile.Services;
 // enumerated like a real directory at runtime. Kept as its own provisioner/marker version (rather
 // than folded into ReferenceDataProvisioner) so a Pink Book content refresh doesn't force
 // re-extraction of the unrelated CDC XML reference data, and vice versa.
+//
+// Every await here uses ConfigureAwait(false) for the same reason as ReferenceDataProvisioner -
+// see its own comment. Nothing currently blocks synchronously on ClinicalReferenceStore.LoadAsync
+// the way CvxLookupService does for ReferenceDataStore, but this stays consistent with it so a
+// future synchronous consumer doesn't reintroduce the exact same deadlock class.
 public static class ClinicalReferenceProvisioner
 {
     private const string AssetRoot = "ClinicalReference";
@@ -27,7 +32,7 @@ public static class ClinicalReferenceProvisioner
     {
         var stopwatch = Stopwatch.StartNew();
         var destRoot = Path.Combine(FileSystem.CacheDirectory, "clinicalreference");
-        await AppPackageAssetGate.RunAsync(() => ExtractIfNeededAsync(destRoot, ct));
+        await ExtractIfNeededAsync(destRoot, ct).ConfigureAwait(false);
         Trace.TraceInformation(
             $"{nameof(ClinicalReferenceProvisioner)}: extraction finished after {stopwatch.ElapsedMilliseconds} ms");
 
@@ -42,25 +47,28 @@ public static class ClinicalReferenceProvisioner
     private static async Task ExtractIfNeededAsync(string destRoot, CancellationToken ct)
     {
         var markerPath = Path.Combine(destRoot, ".extracted");
-        if (File.Exists(markerPath) && await File.ReadAllTextAsync(markerPath, ct) == ExtractedMarkerVersion)
+        if (File.Exists(markerPath) &&
+            await File.ReadAllTextAsync(markerPath, ct).ConfigureAwait(false) == ExtractedMarkerVersion)
             return;
 
         Directory.CreateDirectory(destRoot);
 
-        using var manifestStream = await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/manifest.txt");
+        using var manifestStream =
+            await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/manifest.txt").ConfigureAwait(false);
         using var manifestReader = new StreamReader(manifestStream);
-        var manifestText = await manifestReader.ReadToEndAsync(ct);
+        var manifestText = await manifestReader.ReadToEndAsync(ct).ConfigureAwait(false);
         var relativePaths = manifestText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var relativePath in relativePaths)
         {
             var destPath = Path.Combine(destRoot, relativePath);
 
-            using var source = await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/{relativePath}");
+            using var source =
+                await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/{relativePath}").ConfigureAwait(false);
             await using var dest = File.Create(destPath);
-            await source.CopyToAsync(dest, ct);
+            await source.CopyToAsync(dest, ct).ConfigureAwait(false);
         }
 
-        await File.WriteAllTextAsync(markerPath, ExtractedMarkerVersion, ct);
+        await File.WriteAllTextAsync(markerPath, ExtractedMarkerVersion, ct).ConfigureAwait(false);
     }
 }

@@ -46,10 +46,15 @@ public class CvxLookupService
     private IReadOnlyList<CvxOption> BuildOptions()
     {
         // Search() is called synchronously (from a ViewModel's OnSearchTextChanged), so this has
-        // to block rather than await - but only the first time a vaccine-search screen is actually
-        // opened, not at app startup. The background load MauiProgram.cs kicks off at launch has
-        // almost always already finished by the time a user navigates this deep, so in practice
-        // this returns immediately; it only genuinely waits if they get here unusually fast.
+        // to block rather than await. This is NOT limited to "the first time a vaccine-search
+        // screen is opened" - QuickForecastViewModel calls Search() in its own constructor, and
+        // PatientsViewModel's constructor requires QuickForecastViewModel (a singleton), so this
+        // runs unconditionally on the UI thread on every single app launch, via the very first
+        // screen. That makes ReferenceDataStore.LoadAsync's ConfigureAwait(false) discipline (see
+        // ReferenceDataProvisioner) load-bearing, not optional: without it, this blocking call
+        // deadlocks permanently whenever the background load (kicked off in MauiProgram.cs) hasn't
+        // already completed by the time Patients first constructs its ViewModel - confirmed as a
+        // 100%-reproducible hang on physical Android hardware.
         var repository = _referenceDataStore.LoadAsync().GetAwaiter().GetResult();
 
         return repository.Schedule.CvxToAntigen.Values

@@ -13,6 +13,19 @@ namespace OpenCdsi.Mobile.Services;
 // real path on disk), so the CDC XML has to be copied out to a real directory once before the
 // engine can load it. manifest.txt (itself a bundled raw asset) lists every file to copy, since
 // asset packages can't be enumerated like a real directory at runtime.
+//
+// Every await in this file uses ConfigureAwait(false), and it's load-bearing, not style: at least
+// one caller (CvxLookupService.BuildOptions) genuinely blocks on this Task via
+// GetAwaiter().GetResult() from the UI thread (see its own comment for why that's the only option
+// there). Without ConfigureAwait(false), any await here that runs while a SynchronizationContext
+// is active on the calling thread queues its continuation back onto that same thread - if that
+// thread is the one now blocked in GetResult(), the continuation can never run and the Task can
+// never complete: a permanent deadlock. Confirmed as a real, 100%-reproducible bug on physical
+// Android hardware (not the emulator this was evidently only ever tested on) - QuickForecastViewModel
+// calls CvxLookupService.Search() in its own constructor, and PatientsViewModel's constructor
+// requires QuickForecastViewModel, so this fires on every single launch via the very first screen,
+// not just "the first time a vaccine-search screen is opened" as CvxLookupService's own comment
+// (incorrectly) assumed.
 public static class ReferenceDataProvisioner
 {
     private const string AssetRoot = "ReferenceData";
@@ -30,7 +43,7 @@ public static class ReferenceDataProvisioner
         // code with very different plausible causes if one of them turns out to be the slow one.
         var stopwatch = Stopwatch.StartNew();
         var destRoot = Path.Combine(FileSystem.CacheDirectory, "referencedata");
-        await AppPackageAssetGate.RunAsync(() => ExtractIfNeededAsync(destRoot, ct));
+        await ExtractIfNeededAsync(destRoot, ct).ConfigureAwait(false);
         Trace.TraceInformation(
             $"{nameof(ReferenceDataProvisioner)}: extraction finished after {stopwatch.ElapsedMilliseconds} ms");
 
@@ -47,12 +60,14 @@ public static class ReferenceDataProvisioner
     private static async Task ExtractIfNeededAsync(string destRoot, CancellationToken ct)
     {
         var markerPath = Path.Combine(destRoot, ".extracted");
-        if (File.Exists(markerPath) && await File.ReadAllTextAsync(markerPath, ct) == ExtractedMarkerVersion)
+        if (File.Exists(markerPath) &&
+            await File.ReadAllTextAsync(markerPath, ct).ConfigureAwait(false) == ExtractedMarkerVersion)
             return;
 
-        using var manifestStream = await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/manifest.txt");
+        using var manifestStream =
+            await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/manifest.txt").ConfigureAwait(false);
         using var manifestReader = new StreamReader(manifestStream);
-        var manifestText = await manifestReader.ReadToEndAsync(ct);
+        var manifestText = await manifestReader.ReadToEndAsync(ct).ConfigureAwait(false);
         var relativePaths = manifestText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var relativePath in relativePaths)
@@ -60,11 +75,12 @@ public static class ReferenceDataProvisioner
             var destPath = Path.Combine(destRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
             Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
 
-            using var source = await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/{relativePath}");
+            using var source =
+                await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/{relativePath}").ConfigureAwait(false);
             await using var dest = File.Create(destPath);
-            await source.CopyToAsync(dest, ct);
+            await source.CopyToAsync(dest, ct).ConfigureAwait(false);
         }
 
-        await File.WriteAllTextAsync(markerPath, ExtractedMarkerVersion, ct);
+        await File.WriteAllTextAsync(markerPath, ExtractedMarkerVersion, ct).ConfigureAwait(false);
     }
 }

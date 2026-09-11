@@ -78,10 +78,13 @@ public static class MauiProgram
 		// Each store's own consumers (CvxLookupService, VaxEngineForecastService,
 		// ChapterDetailViewModel, ReferenceLibraryViewModel) await the same shared load themselves
 		// wherever they actually need it, so this is correct even if a page reaches one before this
-		// finishes; it just means loading happens while the roster is already on screen. Firing
-		// both here at once is safe despite each doing its own bundled-asset extraction -
-		// AppPackageAssetGate (used by both provisioners) keeps their actual asset reads from ever
-		// running concurrently, which Android's AssetManager doesn't tolerate.
+		// finishes; it just means loading happens while the roster is already on screen.
+		//
+		// CvxLookupService blocks synchronously on ReferenceDataStore.LoadAsync from the UI thread
+		// (see its own comment) - that's only deadlock-safe because every await in
+		// ReferenceDataProvisioner's load chain uses ConfigureAwait(false), so none of its
+		// continuations need this thread free to resume. Don't add an await here (or anywhere else
+		// in this chain) without ConfigureAwait(false), or that blocking call deadlocks permanently.
 		_ = app.Services.GetRequiredService<ReferenceDataStore>().LoadAsync();
 		_ = app.Services.GetRequiredService<ClinicalReferenceStore>().LoadAsync();
 
