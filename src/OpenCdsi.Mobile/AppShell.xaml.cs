@@ -18,5 +18,7 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute("forecastresult", typeof(ForecastResultPage));
 		Routing.RegisterRoute("quickforecast", typeof(QuickForecastPage));
 		Routing.RegisterRoute("quickforecastresult", typeof(QuickForecastResultPage));
+		Routing.RegisterRoute("chapterdetail", typeof(ChapterDetailPage));
+		Routing.RegisterRoute("referencelibrary", typeof(ReferenceLibraryPage));
 	}
 }

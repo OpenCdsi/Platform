@@ -156,6 +156,10 @@
 		        its own RuntimeIdentifiers declaration (still needed for restore's RID-qualified
 		        graph generation), but this reference no longer asks it to actually BUILD per-RID. -->
 		<ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
+
+		<!-- Same GlobalPropertiesToRemove requirement and reasoning as the Core reference above -
+		     OpenCdsi.ClinicalReference.csproj carries the matching RuntimeIdentifiers declaration. -->
+		<ProjectReference Include="..\OpenCdsi.ClinicalReference\OpenCdsi.ClinicalReference.csproj" GlobalPropertiesToRemove="TargetFramework;RuntimeIdentifier" />
 	</ItemGroup>
 
 </Project>

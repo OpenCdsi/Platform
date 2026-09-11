@@ -56,6 +56,12 @@ public static class MauiProgram
 		builder.Services.AddTransient<QuickForecastResultViewModel>();
 		builder.Services.AddTransient<QuickForecastResultPage>();
 
+		builder.Services.AddSingleton<ClinicalReferenceStore>();
+		builder.Services.AddTransient<ChapterDetailViewModel>();
+		builder.Services.AddTransient<ChapterDetailPage>();
+		builder.Services.AddTransient<ReferenceLibraryViewModel>();
+		builder.Services.AddTransient<ReferenceLibraryPage>();
+
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif
@@ -74,6 +80,11 @@ public static class MauiProgram
 		// wherever they actually need it, so this is correct even if a page reaches them before
 		// this finishes; it just means loading happens while the roster is already on screen.
 		_ = app.Services.GetRequiredService<ReferenceDataStore>().LoadAsync();
+
+		// Same fire-and-forget rationale as ReferenceDataStore above, for the bundled Pink Book
+		// chapter JSON - ChapterDetailViewModel/ReferenceLibraryViewModel await the same shared
+		// load themselves if a page reaches them before this finishes.
+		_ = app.Services.GetRequiredService<ClinicalReferenceStore>().LoadAsync();
 
 		return app;
 	}

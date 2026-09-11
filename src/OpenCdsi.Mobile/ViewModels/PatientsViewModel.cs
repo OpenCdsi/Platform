@@ -49,6 +49,10 @@ public partial class PatientsViewModel : ObservableObject
         => await Shell.Current.GoToAsync("addpatient");
 
     [RelayCommand]
+    private static async Task ReferenceLibraryAsync()
+        => await Shell.Current.GoToAsync("referencelibrary");
+
+    [RelayCommand]
     private static async Task OpenPatientAsync(Patient? patient)
     {
         if (patient is null) return;

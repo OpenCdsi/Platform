@@ -1,0 +1,29 @@
+{
+  "antigenKey": "Diphtheria",
+  "diseaseName": "Diphtheria",
+  "organism": "Corynebacterium diphtheriae, an aerobic gram-positive bacillus. Disease is caused by toxin-producing (toxigenic) strains, which become toxigenic only when infected by a bacteriophage carrying the tox gene. All isolates should be tested for toxigenicity.",
+  "clinicalFeaturesSummary": "Incubation period is 2 to 5 days (range 1 to 10). Respiratory diphtheria (pharyngeal, tonsillar, laryngeal, or nasal) is most common and can produce a firmly adherent bluish-white membrane that may cause airway obstruction and a characteristic 'bull neck' from submandibular edema. Cutaneous diphtheria also occurs and is common in the tropics. Toxin-mediated complications include myocarditis and neuritis; overall case fatality is 5%-10%.",
+  "epidemiologySummary": "Humans are the only reservoir. Transmission is person-to-person via respiratory droplets, or contact with infected skin lesions or contaminated fomites. In temperate climates, disease occurs mostly in winter and spring. Diphtheria is rare in the United States because of high childhood vaccination coverage, but it remains endemic in countries with suboptimal coverage.",
+  "secularTrendsSummary": "Before vaccination, the US reported 100,000-200,000 cases and 13,000-15,000 deaths annually in the 1920s. Cases fell sharply after diphtheria toxoid-containing vaccines were introduced in the 1940s; from 1996 through 2018 only 14 cases (1 fatal) were reported nationwide. Childhood DTaP coverage has remained consistently high (93.3% with 3+ doses by 24 months, birth cohort 2016-2017).",
+  "vaccineDescription": "Diphtheria toxoid is combined with tetanus toxoid and, in most childhood products, acellular pertussis: DT and DTaP for children younger than 7 years, Td and Tdap for those 7 and older. Combination products also pair DTaP with IPV, Hib, and/or HepB (e.g., Pediarix, Pentacel, Vaxelis). All are given by intramuscular injection and contain aluminum adjuvant; several contain neomycin, polymyxin B, or yeast protein.",
+  "vaccinationScheduleSummary": "Routine DTaP schedule is a 3-dose primary series at 2, 4, and 6 months (minimum interval 4 weeks), a booster at 15-18 months, and a second booster at 4-6 years (5 doses total). Dose 4 must follow dose 3 by at least 6 months and not be given before 12 months of age; if dose 4 was given on or after the 4th birthday, dose 5 is optional. Persons 7 years or older receive Td or Tdap instead of DTaP/DT.",
+  "contraindicationsSummary": "A severe allergic reaction to a vaccine component or a prior dose, or encephalopathy within 7 days of a prior DTaP/Tdap dose not attributable to another cause, is a contraindication. Precautions include moderate or severe acute illness, a progressive or unstable neurological disorder, uncontrolled seizures, progressive encephalopathy, Guillain-Barre syndrome within 6 weeks of a prior tetanus toxoid-containing dose, and a history of an Arthus-type reaction to a prior diphtheria- or tetanus toxoid-containing dose (defer at least 10 years in that case).",
+  "vaccineSafetySummary": "Local reactions (pain, redness, or swelling) are common: 20%-40% of DTaP recipients per dose, and 21%-75% of Tdap/Td recipients, generally self-limited. Temperature of 101F or higher occurs in 3%-5% of DTaP recipients. Moderate or severe systemic reactions occur in fewer than 1 in 10,000 doses and are less frequent than with the older whole-cell DTP vaccine. Post-licensure VAERS/VSD surveillance has not shown concerning patterns for either DTaP or Tdap.",
+  "vaccineStorageSummary": "DTaP, Td, and Tdap must be stored at refrigerator temperature, 2C to 8C (36F to 46F). See CDC's Vaccine Storage and Handling Toolkit for complete guidance.",
+  "surveillanceSummary": "Since January 2019, toxigenic diphtheria infections from any anatomic site (not only respiratory) are reportable, and confirmed-case classification requires laboratory verification of toxin production by the C. diphtheriae (or C. ulcerans) isolate.",
+  "supplementalTopics": [],
+  "keyPoints": [
+    "Described by Hippocrates in the 5th century BCE; toxoid vaccine developed in the 1920s, routine use began in the 1940s",
+    "Toxin causes local tissue destruction, pseudomembrane formation, and systemic complications (myocarditis, polyneuropathy, nephritis)",
+    "Reservoir: humans only. Transmission: respiratory droplets, infected skin lesions, or fomites",
+    "US cases fell from ~100,000-200,000/year (1920s) to under 1/year (1996-2018) after routine vaccination",
+    "Encephalopathy within 7 days of a prior DTaP/Tdap dose is a contraindication to further doses",
+    "Store DTaP/Td/Tdap at 2C-8C (36F-46F)"
+  ],
+  "source": {
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "chapterAuthors": "Anna M. Acosta, MD; Pedro L. Moro, MD, MPH; Susan Hariri, PhD; Tejpratap S.P. Tiwari, MD",
+    "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/dip.html",
+    "publishedDate": "2021-08-01"
+  }
+}

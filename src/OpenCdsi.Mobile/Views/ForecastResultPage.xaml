@@ -6,7 +6,6 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:OpenCdsi.Mobile.ViewModels"
-             xmlns:models="clr-namespace:OpenCdsi.Mobile.Models"
              xmlns:conv="clr-namespace:OpenCdsi.Mobile.Converters"
              x:Class="OpenCdsi.Mobile.Views.ForecastResultPage"
              x:DataType="vm:ForecastResultViewModel"
@@ -16,9 +15,17 @@
     <ContentPage.Resources>
         <conv:ForecastStatusToColorConverter x:Key="StatusToColor" />
         <conv:ForecastStatusToLabelConverter x:Key="StatusToLabel" />
+        <conv:ReferenceGlyphStateToVisibleConverter x:Key="GlyphStateToVisible" />
+        <conv:ReferenceGlyphStateToColorConverter x:Key="GlyphStateToColor" />
     </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto,*">
+
+        <!-- Tapping anywhere on the page (outside a row's own glyph) dismisses any open
+             disabled-glyph tooltip - see ForecastResultViewModel.CloseTooltipsCommand. -->
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Command="{Binding CloseTooltipsCommand}" />
+        </Grid.GestureRecognizers>
 
         <VerticalStackLayout Grid.Row="0" Padding="16,12" Spacing="2"
                               BackgroundColor="{StaticResource BrandPrimary}">
@@ -33,12 +40,12 @@
             </Label>
         </VerticalStackLayout>
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding Entries}">
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Rows}">
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:ForecastEntry">
+                <DataTemplate x:DataType="vm:ForecastRowViewModel">
                     <VerticalStackLayout Padding="16,12" Spacing="6"
                                          BackgroundColor="{StaticResource SurfaceCard}">
-                        <Grid ColumnDefinitions="*,Auto">
+                        <Grid ColumnDefinitions="*,Auto,Auto">
                             <Label Grid.Column="0" Text="{Binding AntigenName}"
                                    FontSize="15" TextColor="{StaticResource TextPrimary}" />
                             <Border Grid.Column="1"
@@ -50,9 +57,33 @@
                                 <Label Text="{Binding Status, Converter={StaticResource StatusToLabel}}"
                                        FontSize="12" TextColor="White" />
                             </Border>
+                            <!-- Hidden entirely for Complete/Immune rows (ReferenceGlyphState.Hidden);
+                                 otherwise a tappable "learn about this vaccine" glyph - enabled and
+                                 navigating when a chapter exists, disabled (opens the inline tooltip
+                                 below instead) when it doesn't. See
+                                 ForecastResultViewModel.OpenReferenceCommand. -->
+                            <Label Grid.Column="2" Text="&#9432;" FontSize="18"
+                                   Margin="10,0,0,0" VerticalOptions="Center"
+                                   IsVisible="{Binding GlyphState, Converter={StaticResource GlyphStateToVisible}}"
+                                   TextColor="{Binding GlyphState, Converter={StaticResource GlyphStateToColor}}">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.OpenReferenceCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}}"
+                                        CommandParameter="{Binding .}" />
+                                </Label.GestureRecognizers>
+                            </Label>
                         </Grid>
                         <Label Text="{Binding ReasonText}" FontSize="13"
                                TextColor="{StaticResource TextSecondary}" LineBreakMode="WordWrap" />
+                        <Border IsVisible="{Binding IsTooltipVisible}"
+                                BackgroundColor="{StaticResource BrandPrimaryTint}"
+                                StrokeThickness="0" Padding="10,6">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="6" />
+                            </Border.StrokeShape>
+                            <Label Text="No curated chapter yet for this product"
+                                   FontSize="12" TextColor="{StaticResource BrandPrimary}" />
+                        </Border>
                     </VerticalStackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

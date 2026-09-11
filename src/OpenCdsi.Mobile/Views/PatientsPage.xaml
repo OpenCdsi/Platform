@@ -15,6 +15,7 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Quick forecast" Command="{Binding QuickForecastCommand}" />
         <ToolbarItem Text="Add patient" Command="{Binding AddPatientCommand}" />
+        <ToolbarItem Text="Reference" Command="{Binding ReferenceLibraryCommand}" />
     </ContentPage.ToolbarItems>
 
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="0">

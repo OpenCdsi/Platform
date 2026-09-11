@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+     License, v. 2.0. If a copy of the MPL was not distributed with this
+     file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:OpenCdsi.Mobile.ViewModels"
+             xmlns:models="clr-namespace:OpenCdsi.ClinicalReference.Models"
+             xmlns:conv="clr-namespace:OpenCdsi.Mobile.Converters"
+             x:Class="OpenCdsi.Mobile.Views.ChapterDetailPage"
+             x:DataType="vm:ChapterDetailViewModel"
+             Title="{Binding DiseaseName}"
+             BackgroundColor="{StaticResource SurfacePage}">
+
+    <ContentPage.Resources>
+        <conv:BoolToChevronRotationConverter x:Key="BoolToChevronRotation" />
+        <conv:CountToVisibleConverter x:Key="CountToVisible" />
+        <conv:ObjectToVisibleConverter x:Key="ObjectToVisible" />
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="0,8,0,24" Spacing="0">
+
+            <Label Text="No curated chapter is available for this antigen yet."
+                   IsVisible="{Binding ChapterNotFound}"
+                   Margin="16,24" FontSize="14" TextColor="{StaticResource TextSecondary}" />
+
+            <!-- Accordion: one collapsible row per non-null AntigenChapter summary field, Key
+                 points always first - see ChapterDetailViewModel.LoadAsync for how this list is
+                 built and why a section is simply absent rather than shown empty. -->
+            <CollectionView x:Name="SectionsCollectionView" ItemsSource="{Binding Sections}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AccordionSectionViewModel">
+                        <VerticalStackLayout BackgroundColor="{StaticResource SurfaceCard}">
+                            <Grid Padding="16,14" ColumnDefinitions="*,Auto">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleExpandedCommand}" />
+                                </Grid.GestureRecognizers>
+                                <Label Grid.Column="0" Text="{Binding Title}"
+                                       FontSize="14" TextColor="{StaticResource TextPrimary}" />
+                                <Label Grid.Column="1" Text="&#8250;" FontSize="16"
+                                       TextColor="{StaticResource TextMuted}"
+                                       Rotation="{Binding IsExpanded, Converter={StaticResource BoolToChevronRotation}}" />
+                            </Grid>
+                            <Label Text="{Binding Content}"
+                                   IsVisible="{Binding IsExpanded}"
+                                   Padding="16,0,16,14" FontSize="13" LineBreakMode="WordWrap"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <BoxView HeightRequest="1" Color="{StaticResource Border}" />
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Free-form, chapter-specific content that doesn't fit a fixed field - rendered as
+                 its own cards below the accordion rather than inside it (SupplementalTopic is a
+                 list, not a set of known fields, so it can't drive fixed accordion rows the way the
+                 summary fields above do). -->
+            <Label Text="Also in this chapter"
+                   IsVisible="{Binding SupplementalTopics.Count, Converter={StaticResource CountToVisible}}"
+                   Margin="16,20,16,8" FontSize="11" FontAttributes="Bold"
+                   TextColor="{StaticResource TextMuted}" />
+            <CollectionView ItemsSource="{Binding SupplementalTopics}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:SupplementalTopic">
+                        <Border Margin="16,0,16,10" Padding="14,10" StrokeThickness="0"
+                                BackgroundColor="{StaticResource SurfaceCard}">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding Title}" FontSize="13" FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}" />
+                                <Label Text="{Binding Summary}" FontSize="12" LineBreakMode="WordWrap"
+                                       TextColor="{StaticResource TextSecondary}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Citation footer - edition and publish date so a reader can judge currency without
+                 leaving the app, plus a link to the chapter's own canonical CDC page. -->
+            <Grid IsVisible="{Binding Source, Converter={StaticResource ObjectToVisible}}"
+                  Margin="16,16,16,0" Padding="0,12,0,0" ColumnDefinitions="*,Auto">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding OpenSourceCommand}"
+                                           CommandParameter="{Binding Source.Url}" />
+                </Grid.GestureRecognizers>
+                <BoxView Grid.ColumnSpan="2" HeightRequest="1" Color="{StaticResource Border}"
+                         VerticalOptions="Start" />
+                <Label Grid.Column="0" FontSize="11.5" TextColor="{StaticResource TextMuted}"
+                       VerticalOptions="Center">
+                    <Label.Text>
+                        <MultiBinding StringFormat="{}{0} · {1:MMM yyyy}">
+                            <Binding Path="Source.Edition" />
+                            <Binding Path="Source.PublishedDate" />
+                        </MultiBinding>
+                    </Label.Text>
+                </Label>
+                <Label Grid.Column="1" Text="cdc.gov &#8599;" FontSize="11.5" FontAttributes="Bold"
+                       TextColor="{StaticResource BrandSecondary}" VerticalOptions="Center" />
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

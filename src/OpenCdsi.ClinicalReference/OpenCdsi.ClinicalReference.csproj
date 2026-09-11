@@ -6,6 +6,15 @@
     <Nullable>enable</Nullable>
     <RootNamespace>OpenCdsi.ClinicalReference</RootNamespace>
     <LangVersion>12</LangVersion>
+
+    <!-- Required for Mobile to build for Android/Windows once this becomes a ProjectReference from
+         OpenCdsi.Mobile - see OpenCdsi.VaxEngine.Core.csproj's identical property and
+         OpenCdsi.Mobile.csproj's ProjectReference comment for the full history of why a referenced
+         plain library needs its own matching RuntimeIdentifiers declared (NuGet's RID-aware restore
+         graph otherwise fails with NETSDK1047). This has no effect on actual compiled output for
+         any consumer - it only adds RID-qualified restore-graph entries alongside the plain net10.0
+         one. -->
+    <RuntimeIdentifiers>android-arm64;android-x64;win-x64;win-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
 </Project>
