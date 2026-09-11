@@ -71,19 +71,18 @@ public static class MauiProgram
 		using var db = app.Services.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext();
 		db.Database.EnsureCreated();
 
-		// Kicked off here, in the background, so the ~2.6MB of CDC reference data (first-run
-		// extraction from the app package, then XML parsing) never blocks the first page from
-		// appearing. Deliberately NOT awaited: CreateMauiApp() runs on the platform's main thread
-		// before any window exists, and blocking it here previously meant the app showed nothing
-		// at all until this finished. CvxLookupService and VaxEngineForecastService both await
-		// (or block on, as a last resort — see CvxLookupService) the same shared load themselves
-		// wherever they actually need it, so this is correct even if a page reaches them before
-		// this finishes; it just means loading happens while the roster is already on screen.
+		// Kicked off here, in the background, so bundled reference data (first-run extraction from
+		// the app package, then parsing) never blocks the first page from appearing. Deliberately
+		// NOT awaited: CreateMauiApp() runs on the platform's main thread before any window exists,
+		// and blocking it here previously meant the app showed nothing at all until this finished.
+		// Each store's own consumers (CvxLookupService, VaxEngineForecastService,
+		// ChapterDetailViewModel, ReferenceLibraryViewModel) await the same shared load themselves
+		// wherever they actually need it, so this is correct even if a page reaches one before this
+		// finishes; it just means loading happens while the roster is already on screen. Firing
+		// both here at once is safe despite each doing its own bundled-asset extraction -
+		// AppPackageAssetGate (used by both provisioners) keeps their actual asset reads from ever
+		// running concurrently, which Android's AssetManager doesn't tolerate.
 		_ = app.Services.GetRequiredService<ReferenceDataStore>().LoadAsync();
-
-		// Same fire-and-forget rationale as ReferenceDataStore above, for the bundled Pink Book
-		// chapter JSON - ChapterDetailViewModel/ReferenceLibraryViewModel await the same shared
-		// load themselves if a page reaches them before this finishes.
 		_ = app.Services.GetRequiredService<ClinicalReferenceStore>().LoadAsync();
 
 		return app;

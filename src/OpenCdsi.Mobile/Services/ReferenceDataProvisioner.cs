@@ -30,7 +30,7 @@ public static class ReferenceDataProvisioner
         // code with very different plausible causes if one of them turns out to be the slow one.
         var stopwatch = Stopwatch.StartNew();
         var destRoot = Path.Combine(FileSystem.CacheDirectory, "referencedata");
-        await ExtractIfNeededAsync(destRoot, ct);
+        await AppPackageAssetGate.RunAsync(() => ExtractIfNeededAsync(destRoot, ct));
         Trace.TraceInformation(
             $"{nameof(ReferenceDataProvisioner)}: extraction finished after {stopwatch.ElapsedMilliseconds} ms");
 

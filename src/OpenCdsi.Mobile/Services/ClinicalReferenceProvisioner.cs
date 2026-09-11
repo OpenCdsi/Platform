@@ -27,7 +27,7 @@ public static class ClinicalReferenceProvisioner
     {
         var stopwatch = Stopwatch.StartNew();
         var destRoot = Path.Combine(FileSystem.CacheDirectory, "clinicalreference");
-        await ExtractIfNeededAsync(destRoot, ct);
+        await AppPackageAssetGate.RunAsync(() => ExtractIfNeededAsync(destRoot, ct));
         Trace.TraceInformation(
             $"{nameof(ClinicalReferenceProvisioner)}: extraction finished after {stopwatch.ElapsedMilliseconds} ms");
 
