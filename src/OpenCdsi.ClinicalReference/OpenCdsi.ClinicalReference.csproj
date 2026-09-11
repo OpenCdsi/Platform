@@ -17,4 +17,83 @@
     <RuntimeIdentifiers>android-arm64;android-x64;win-x64;win-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
+  <!--
+    NuGet packaging metadata. Version is auto-derived from git tags by MinVer (see the
+    PackageReference below) rather than hand-maintained - MinVerTagPrefix="clinref-v" means it
+    only ever looks at this repo's clinref-v* tags (this is a monorepo; engine-v*/mobile-v*/
+    backend-v* tags are correctly ignored). On the exact tagged commit this resolves to a clean
+    X.Y.Z; on any commit past the last tag it computes a height-based prerelease (e.g.
+    2.0.1-alpha.0.4), so local/dev builds still get a sane, unique version with nothing to
+    remember to bump by hand. See OpenCdsi.VaxEngine.Core.csproj's identical setup for the full
+    reasoning (RepositoryUrl requirement for GITHUB_TOKEN-based publishing included).
+
+    License is MPL-2.0, confirmed against the real LICENSE file at the repo root and this
+    project's own source file headers (both agree) - not assumed from the header comment alone.
+    Unlike OpenCdsi.VaxEngine.Core's data/supportingdata (verbatim, public-domain CDC XML), the
+    JSON chapters under data/pinkbook are this project's OWN hand-curated summaries of CDC Pink
+    Book text (see data/pinkbook/NOTICE) - genuinely this repo's copyrightable work, so MPL-2.0
+    covers the bundled content too, not just the code.
+
+    Deliberately doesn't set GeneratePackageOnBuild - `dotnet pack` on demand is the more common,
+    less surprising default; regular `dotnet build` runs shouldn't also produce a .nupkg.
+  -->
+  <PropertyGroup>
+    <PackageId>OpenCdsi.ClinicalReference</PackageId>
+    <MinVerTagPrefix>clinref-v</MinVerTagPrefix>
+    <Authors>Dennis Dunn</Authors>
+    <Description>Curated CDC Pink Book clinical reference content (per-antigen summaries: disease description, vaccine characteristics, contraindications, precautions, adverse reactions) for the 30 antigens covered by OpenCdsi.VaxEngine. Bundles the hand-authored chapter JSON (data/pinkbook), curated from the CDC's "Epidemiology and Prevention of Vaccine-Preventable Diseases" (Pink Book), 14th Edition (2021), and loads it into strongly-typed models via ClinicalReferenceRepository.Load.</Description>
+    <PackageTags>CDSi;immunization;vaccine;vaccination;pinkbook;CDC;healthcare;clinical-reference</PackageTags>
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <Copyright>Copyright (c) 2026 Dennis Dunn</Copyright>
+    <RepositoryUrl>https://github.com/OpenCdsi/Platform</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/OpenCdsi/Platform</PackageProjectUrl>
+    <!-- Cites the source edition of the bundled data/pinkbook content directly in package
+         metadata, as rendered on the GitHub Packages/NuGet listing page - not just in-repo
+         documentation. Every chapter file's own "source.edition" field agrees on "14th Edition"
+         (verified against all 18 files at the time this was written) - if a future content
+         refresh (see data/pinkbook/CONTRIBUTING.md) moves to a new edition, update this line
+         alongside it. -->
+    <PackageReleaseNotes>Bundled clinical reference data: CDC "Epidemiology and Prevention of Vaccine-Preventable Diseases" (Pink Book), 14th Edition (2021). See data/pinkbook/NOTICE in the source repository for full attribution and licensing detail.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- See OpenCdsi.VaxEngine.Core.csproj's identical NoWarn for why CS1591/CS1573 are
+         deliberately suppressed here rather than forcing boilerplate doc tags on every member. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Build-time only (PrivateAssets=All) - see OpenCdsi.VaxEngine.Core.csproj's identical
+         PackageReference comment for why this needs full git history (fetch-depth: 0 in CI). -->
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!--
+    Bundles data/pinkbook's curated JSON (plus its NOTICE, for attribution) into the package via
+    NuGet's "contentFiles" convention: PackageCopyToOutput + BuildAction=Content on a packed
+    Content item is enough for the SDK to generate the nuspec's <contentFiles> section itself -
+    no hand-written nuspec needed. A consuming project (PackageReference-based, which is
+    effectively all of them today) then gets these files copied to ITS OWN output directory
+    automatically on build/publish, under a "pinkbook" subfolder - so ClinicalReferenceRepository
+    .Load(Path.Combine(AppContext.BaseDirectory, "pinkbook")) works immediately after installing
+    the package, with nothing extra for the consumer to fetch.
+
+    This differs deliberately from OpenCdsi.VaxEngine.Core, which leaves data/supportingdata
+    external: that CDC XML is refreshed independently of the code and consumers may reasonably
+    want to point at a different/newer CDC drop. There's no equivalent case for data/pinkbook -
+    it's this project's own content, one-to-one with the package version, and a
+    ClinicalReference package without it is just model classes.
+  -->
+  <ItemGroup>
+    <Content Include="..\..\data\pinkbook\*.json" Pack="true" PackagePath="contentFiles\any\any\pinkbook\%(Filename)%(Extension)" Link="pinkbook\%(Filename)%(Extension)">
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <BuildAction>Content</BuildAction>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\data\pinkbook\NOTICE" Pack="true" PackagePath="contentFiles\any\any\pinkbook\" Link="pinkbook\NOTICE">
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <BuildAction>Content</BuildAction>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

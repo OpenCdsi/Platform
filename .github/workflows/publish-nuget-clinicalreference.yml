@@ -1,0 +1,115 @@
+# Publishes the OpenCdsi.ClinicalReference package to GitHub Packages whenever a
+# clinref-vX.Y.Z tag is pushed to main. This repo is a monorepo containing several
+# independently-released solutions (Engine, Backend, Mobile, and this ClinicalReference
+# package), each tagged with its own prefix - see publish-nuget.yml for the OpenCdsi.VaxEngine.Core
+# counterpart this workflow mirrors line-for-line, with clinref-v in place of engine-v and
+# OpenCdsi.ClinicalReference in place of OpenCdsi.VaxEngine.Core.
+#
+# Deliberately narrow in scope: this workflow only builds and publishes
+# src/OpenCdsi.ClinicalReference - the curated CDC Pink Book content library, meant for external
+# NuGet consumption alongside (or independently of) OpenCdsi.VaxEngine.Core. Unlike
+# OpenCdsi.VaxEngine.Core (which loads CDC's own verbatim, independently-updated XML from an
+# external directory), this package's data/pinkbook/*.json content IS bundled into the .nupkg
+# itself via the contentFiles convention (see OpenCdsi.ClinicalReference.csproj's own comments) -
+# it's this project's own hand-curated content, one-to-one with the package version, not an
+# external CDC data drop a consumer might want to swap independently. `dotnet pack` below reads
+# data/pinkbook straight from this same checkout, so no separate data-fetch step is needed.
+#
+# ClinicalReference.csproj no longer hardcodes <Version> - MinVer (see its csproj) computes it
+# from this same clinref-v* tag at build/pack time, so there's nothing to keep in sync by hand.
+# This workflow still does its own tag validation up front (see below) purely as an early, clear
+# failure for a malformed tag, and still checks the packed .nupkg's filename against the tag
+# afterward as a safety net in case MinVer somehow computed something different (e.g. a
+# misconfigured checkout that didn't actually fetch tags).
+#
+# Two safety checks run BEFORE anything gets built or published, since a wrong version number or
+# a tag placed on the wrong branch is much harder to undo once a package is live on the registry
+# than it would be to catch here first:
+#   1. The tag itself must be a real, valid semver (with the "clinref-v" prefix this monorepo's
+#      own convention uses) - not just "looks vaguely like dots and numbers," which is all the
+#      workflow-level trigger filter below can check on its own.
+#   2. The tagged commit must actually be reachable from main - matching "add a new semver tag to
+#      the main branch" literally, not just "any tag anywhere in the repo, on any branch."
+#
+# The trigger pattern (clinref-v*.*.*) is deliberately permissive - GitHub Actions' own tag-filter
+# glob syntax can't express a real semver pattern - so the real validation happens in the
+# "Validate tag is real semver" step below, with a clear, specific failure message rather than a
+# vague build error if someone pushes something like "clinref-v1.2" by mistake.
+
+name: Publish OpenCdsi.ClinicalReference to GitHub Packages
+
+on:
+  push:
+    tags:
+      - 'clinref-v*.*.*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history AND tags needed - both for the "is this tag reachable
+                          # from main" check below, and for MinVer to see clinref-v* tags at all
+
+      - name: Validate tag is real semver
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          # Full semver 2.0.0 pattern (semver.org's own regex), applied after stripping the
+          # required leading "clinref-v" - rejects things like "clinref-v1.2" or "v1.2.3"
+          # (missing the clinref- prefix) with a clear message rather than letting a malformed
+          # version reach `dotnet pack` and fail there instead.
+          if [[ ! "$TAG" =~ ^clinref-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?$ ]]; then
+            echo "::error::Tag '$TAG' is not a valid semver tag (expected format: clinref-v1.2.3, with an optional -prerelease or +build suffix). Not publishing."
+            exit 1
+          fi
+          VERSION="${TAG#clinref-v}" # NuGet's own Version property doesn't take the "clinref-v" prefix
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Validated tag $TAG -> expecting package version $VERSION (MinVer computes this independently at pack time - verified below)"
+
+      - name: Verify tag is reachable from main
+        run: |
+          git fetch origin main --quiet
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Tag ${GITHUB_REF_NAME} (commit ${GITHUB_SHA}) is not reachable from main. Refusing to publish a package from a tag that isn't actually on the main branch."
+            exit 1
+          fi
+          echo "Confirmed: ${GITHUB_REF_NAME} is reachable from main."
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore src/OpenCdsi.ClinicalReference/OpenCdsi.ClinicalReference.csproj
+
+      - name: Pack
+        run: >
+          dotnet pack src/OpenCdsi.ClinicalReference/OpenCdsi.ClinicalReference.csproj
+          -c Release
+          -o ./artifacts
+          --no-restore
+
+      - name: Verify packed version matches tag
+        run: |
+          EXPECTED="./artifacts/OpenCdsi.ClinicalReference.${{ steps.version.outputs.version }}.nupkg"
+          if [ ! -f "$EXPECTED" ]; then
+            echo "::error::Expected $EXPECTED not found - MinVer's computed version doesn't match tag ${GITHUB_REF_NAME}. This usually means tags weren't fully fetched. Contents of ./artifacts:"
+            ls ./artifacts
+            exit 1
+          fi
+          echo "Confirmed: $EXPECTED"
+
+      - name: Push to GitHub Packages
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --api-key ${{ secrets.GITHUB_TOKEN }}
+          --skip-duplicate
