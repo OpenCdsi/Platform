@@ -18,7 +18,7 @@ namespace OpenCdsi.VaxEngine.Api;
 /// </summary>
 public sealed class TagOrderDocumentFilter : IDocumentFilter
 {
-    private static readonly string[] Order = ["VaxEngine", "Supporting Data"];
+    private static readonly string[] Order = ["VaxEngine", "Supporting Data", "Reference"];
 
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
     {

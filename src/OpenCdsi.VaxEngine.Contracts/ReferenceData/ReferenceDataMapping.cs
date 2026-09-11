@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+using OpenCdsi.ClinicalReference.Models;
 using OpenCdsi.VaxEngine.Core.ReferenceData;
 
 namespace OpenCdsi.VaxEngine.Contracts.ReferenceData;
@@ -252,5 +253,40 @@ public static class ReferenceDataMapping
         Code = codedValue.Code,
         CodeSystem = codedValue.CodeSystem,
         Text = codedValue.Text
+    };
+
+    public static ChapterDto ToDto(AntigenChapter chapter) => new()
+    {
+        AntigenKey = chapter.AntigenKey,
+        DiseaseName = chapter.DiseaseName,
+        Organism = chapter.Organism,
+        ClinicalFeaturesSummary = chapter.ClinicalFeaturesSummary,
+        EpidemiologySummary = chapter.EpidemiologySummary,
+        SecularTrendsSummary = chapter.SecularTrendsSummary,
+        VaccineDescription = chapter.VaccineDescription,
+        VaccinationScheduleSummary = chapter.VaccinationScheduleSummary,
+        VaccineEfficacySummary = chapter.VaccineEfficacySummary,
+        EvidenceOfImmunitySummary = chapter.EvidenceOfImmunitySummary,
+        ContraindicationsSummary = chapter.ContraindicationsSummary,
+        VaccineSafetySummary = chapter.VaccineSafetySummary,
+        VaccineStorageSummary = chapter.VaccineStorageSummary,
+        SurveillanceSummary = chapter.SurveillanceSummary,
+        KeyPoints = chapter.KeyPoints,
+        SupplementalTopics = chapter.SupplementalTopics.Select(ToDto).ToArray(),
+        Source = ToDto(chapter.Source)
+    };
+
+    private static SupplementalTopicDto ToDto(SupplementalTopic topic) => new()
+    {
+        Title = topic.Title,
+        Summary = topic.Summary
+    };
+
+    private static ChapterSourceDto ToDto(ChapterSource source) => new()
+    {
+        Edition = source.Edition,
+        ChapterAuthors = source.ChapterAuthors,
+        Url = source.Url,
+        PublishedDate = source.PublishedDate
     };
 }

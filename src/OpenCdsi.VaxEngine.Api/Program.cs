@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+using OpenCdsi.ClinicalReference;
 using OpenCdsi.VaxEngine.Api;
 using OpenCdsi.VaxEngine.Contracts;
 using OpenCdsi.VaxEngine.Core.Models;
@@ -68,6 +69,10 @@ builder.Services.AddSingleton(_ =>
     var schedulePath = Path.Combine(dataRoot, "supportingdata", "schedule", "ScheduleSupportingData.xml");
     return ReferenceDataRepository.Load(antigensPath, schedulePath);
 });
+
+// Curated Pink Book chapters (OpenCdsi.ClinicalReference) - loaded once at startup, same reasoning
+// and same dataRoot resolution as the reference data catalog above.
+builder.Services.AddSingleton(_ => ClinicalReferenceRepository.Load(Path.Combine(dataRoot, "pinkbook")));
 
 var app = builder.Build();
 
@@ -280,6 +285,7 @@ referenceDataApi.MapAntigenEndpoints();
 referenceDataApi.MapVaccineEndpoints();
 referenceDataApi.MapVaccineGroupEndpoints();
 referenceDataApi.MapObservationEndpoints();
+referenceDataApi.MapChapterEndpoints();
 
 app.Run();
 

@@ -29,6 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OpenCdsi.VaxEngine.Core\OpenCdsi.VaxEngine.Core.csproj" />
     <ProjectReference Include="..\OpenCdsi.VaxEngine.Contracts\OpenCdsi.VaxEngine.Contracts.csproj" />
+    <ProjectReference Include="..\OpenCdsi.ClinicalReference\OpenCdsi.ClinicalReference.csproj" />
   </ItemGroup>
 
 </Project>
