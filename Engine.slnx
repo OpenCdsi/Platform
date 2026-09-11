@@ -3,9 +3,11 @@
     <Project Path="src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Contracts/OpenCdsi.VaxEngine.Contracts.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Demo/OpenCdsi.VaxEngine.Demo.csproj" />
+    <Project Path="src/OpenCdsi.ClinicalReference/OpenCdsi.ClinicalReference.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenCdsi.VaxEngine.Core.Tests/OpenCdsi.VaxEngine.Core.Tests.csproj" />
     <Project Path="tests/OpenCdsi.VaxEngine.Conformance.Tests/OpenCdsi.VaxEngine.Conformance.Tests.csproj" />
+    <Project Path="tests/OpenCdsi.ClinicalReference.Tests/OpenCdsi.ClinicalReference.Tests.csproj" />
   </Folder>
 </Solution>
