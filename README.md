@@ -355,6 +355,37 @@ dotnet nuget add source https://nuget.pkg.github.com/OpenCdsi/index.json --name 
 Once that source is registered, browsing/searching "OpenCdsi" (Visual Studio's Package Manager UI,
 or `dotnet package search`) surfaces both packages, since they share the same org-level feed.
 
+### Seeding the CDC reference data
+
+`OpenCdsi.VaxEngine.Core` needs the CDC's own CDSi supporting data on disk at runtime —
+`ReferenceDataRepository.Load(antigensDirectory, scheduleFilePath)` reads it directly. This data
+is deliberately **not** bundled into the NuGet package (see the package description in
+`OpenCdsi.VaxEngine.Core.csproj`): keeping it external means a new CDC schedule/logic drop is
+just a matter of replacing files on disk, not shipping a new package version.
+
+If you're consuming the package from outside this repo, you'll need to fetch that data yourself:
+
+1. Download the current "Supporting Data" zip from CDC's CDSi page:
+   [cdc.gov/iis/cdsi](https://www.cdc.gov/iis/cdsi/index.html).
+2. Extract it.
+3. Lay the files out under a data folder of your choosing, matching what `ReferenceDataRepository`
+   expects:
+   - every `AntigenSupportingData-*.xml` file goes under `<data>/antigens/`
+   - `ScheduleSupportingData.xml` goes under `<data>/schedule/`
+4. Point your code at that folder:
+
+   ```csharp
+   var repository = ReferenceDataRepository.Load(
+       antigensDirectory: Path.Combine(dataRoot, "antigens"),
+       scheduleFilePath: Path.Combine(dataRoot, "schedule", "ScheduleSupportingData.xml"));
+   ```
+
+This repo's own [`data/supportingdata`](data/supportingdata) folder is a working example of that
+exact layout — useful as a reference, though per its own `NOTICE` file you should still get the
+current, authoritative copy from CDC rather than relying on a snapshot in this repo. Deploying
+`Cdsi.Api`/`Cdsi.Functions` instead of consuming the library directly? See "The data volume, not
+baked into the image" below — same data, same layout, just mounted into a container.
+
 ## Run the whole pipeline yourself
 
 ```bash
@@ -1415,7 +1446,8 @@ Consistent with this project's stated top priority ("easy updates when CDC sched
 changes"): `data/` is mounted read-only into the container (`./data:/data:ro` in
 `docker-compose.yml`) rather than `COPY`'d into the image. Updating the CDC's supporting data is
 a matter of replacing files under `./data` and restarting the container - not rebuilding the
-image. `ReferenceDataRepository` is loaded once at startup as a singleton and resolved eagerly
+image. See "Seeding the CDC reference data" above for where to get that data and how it's laid
+out. `ReferenceDataRepository` is loaded once at startup as a singleton and resolved eagerly
 (not lazily on first request), so a bad data path fails fast with a clear startup error instead
 of surfacing as a confusing 500 on an EHR integration's first real request.
 
