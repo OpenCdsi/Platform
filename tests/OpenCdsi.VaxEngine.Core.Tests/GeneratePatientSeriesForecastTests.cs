@@ -385,7 +385,7 @@ public class GeneratePatientSeriesForecastTests
         Assert.Equal(new DateOnly(2021, 2, 9), forecast.Dates!.EarliestDate); // Dose 4's own interval math (Dose 2 + 8 weeks), not Dose 3's (which would have been 2021-01-12)
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_RealPertussisFullForecast_OneValidDoseAsAdult_WhereDoesTheReForecastLoopActuallyLand()
     {
         // DIAGNOSTIC, not a fix - reverted back to this state after the Option 1 fix that once

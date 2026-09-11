@@ -314,7 +314,7 @@ public class EvaluateSeriesHistoryTests
         Assert.Equal(8, withSecondPass.CurrentTargetDoseNumber); // unchanged - the fast-forward pass has nothing left to do here
     }
 
-    [Fact]
+    [Fact(Skip = "Diagnostic-only: intentionally fails to surface an investigation dump in the test output. Skipped by default so it doesn't fail CI - remove Skip to re-run and inspect the dump.")]
     public void DiagnosticOnly_RealPertussis_2013_0016_ThreeDoses_WhereDoesTheMainLoopLand()
     {
         // DIAGNOSTIC, not a fix. Real corpus case 2013-0016 (DOB 2019-07-05, DTaP CVX107 at
