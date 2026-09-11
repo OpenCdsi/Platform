@@ -7,7 +7,7 @@ namespace OpenCdsi.VaxEngine.Conformance.Tests;
 /// <summary>
 /// Deserialization models for cdsi-healthy-test-cases.json - an external, 1,064-case conformance
 /// corpus, not authored by this project (same provenance question as the CDC XML data itself -
-/// see data/NOTICE at the repo root; this corpus's own license/source hasn't been confirmed and
+/// see data/supportingdata/NOTICE; this corpus's own license/source hasn't been confirmed and
 /// is worth resolving before this project claims MPL 2.0 covers it too). Field names use
 /// PascalCase here with case-insensitive deserialization, matching the source JSON's camelCase.
 /// </summary>

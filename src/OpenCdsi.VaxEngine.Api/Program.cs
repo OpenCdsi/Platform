@@ -64,8 +64,8 @@ builder.Services.AddSwaggerGen(options =>
 var dataRoot = builder.Configuration["CDSI_DATA_PATH"] ?? FindDataDirectory();
 builder.Services.AddSingleton(_ =>
 {
-    var antigensPath = Path.Combine(dataRoot, "antigens");
-    var schedulePath = Path.Combine(dataRoot, "schedule", "ScheduleSupportingData.xml");
+    var antigensPath = Path.Combine(dataRoot, "supportingdata", "antigens");
+    var schedulePath = Path.Combine(dataRoot, "supportingdata", "schedule", "ScheduleSupportingData.xml");
     return ReferenceDataRepository.Load(antigensPath, schedulePath);
 });
 

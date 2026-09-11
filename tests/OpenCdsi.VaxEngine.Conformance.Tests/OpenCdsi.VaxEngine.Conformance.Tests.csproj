@@ -22,13 +22,13 @@
   <!-- Same pattern as OpenCdsi.VaxEngine.Core.Tests: bundle the real CDC supporting-data XML files as test
        fixtures, copied next to the test binaries. -->
   <ItemGroup>
-    <None Include="..\..\data\antigens\*.xml" Link="TestData\antigens\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\data\schedule\*.xml" Link="TestData\schedule\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\data\supportingdata\antigens\*.xml" Link="TestData\antigens\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\data\supportingdata\schedule\*.xml" Link="TestData\schedule\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- The real, external 1,064-case conformance corpus - not authored by this project, kept as
-       a standalone data asset the same way the CDC XML data itself is (see data/NOTICE at the
-       repo root for the same reasoning applied there). -->
+       a standalone data asset the same way the CDC XML data itself is (see
+       data/supportingdata/NOTICE for the same reasoning applied there). -->
   <ItemGroup>
     <None Include="TestData\cdsi-healthy-test-cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

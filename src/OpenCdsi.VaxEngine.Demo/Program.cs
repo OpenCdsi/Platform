@@ -20,7 +20,7 @@ using OpenCdsi.VaxEngine.Core.ReferenceData;
 
 var dataRoot = FindDataDirectory();
 Console.WriteLine($"Loading full CDC catalog from: {dataRoot}");
-var repo = ReferenceDataRepository.Load(Path.Combine(dataRoot, "antigens"), Path.Combine(dataRoot, "schedule", "ScheduleSupportingData.xml"));
+var repo = ReferenceDataRepository.Load(Path.Combine(dataRoot, "supportingdata", "antigens"), Path.Combine(dataRoot, "supportingdata", "schedule", "ScheduleSupportingData.xml"));
 Console.WriteLine($"Loaded {repo.AllSeries.Count} series across {repo.AllSeries.Select(s => s.Antigen).Distinct().Count()} antigens, {repo.VaccineGroups.Count} vaccine groups.");
 Console.WriteLine();
 

@@ -74,10 +74,10 @@ three chapters — a one-off doesn't need a new field.
    language, and curated/summarized rather than copy-pasted verbatim CDC
    paragraphs (see `NOTICE`). Confirm `antigenKey` matches the real
    `<targetDisease>` value in the corresponding
-   `data/antigens/AntigenSupportingData-*.xml` file exactly:
+   `data/supportingdata/antigens/AntigenSupportingData-*.xml` file exactly:
 
    ```bash
-   grep -m1 "<targetDisease>" data/antigens/AntigenSupportingData-_<Antigen>-508.xml
+   grep -m1 "<targetDisease>" data/supportingdata/antigens/AntigenSupportingData-_<Antigen>-508.xml
    ```
 
    This is what lets a forecast result's antigen name look a chapter up
@@ -100,9 +100,10 @@ three chapters — a one-off doesn't need a new field.
 ## Chapters this edition doesn't cover
 
 The Pink Book's 14th edition (2021) only covers the 17 antigen chapters
-curated here. Eleven antigens in `data/antigens/` have no chapter and never
-will from this edition, because it predates them or they're outside its
-scope entirely — COVID-19, RSV, and Orthopoxvirus (mpox) were added to CDC's
+curated here. Eleven antigens in `data/supportingdata/antigens/` have no
+chapter and never will from this edition, because it predates them or
+they're outside its scope entirely — COVID-19, RSV, and Orthopoxvirus (mpox)
+were added to CDC's
 Pink Book only as later web-only supplements, and Chikungunya, Cholera,
 Dengue, Ebola, JE, Rabies, TBE, Typhoid, and YF are travel vaccines covered
 by CDC's Yellow Book instead. `ClinicalReferenceRepository.TryGetByAntigen`
@@ -124,6 +125,6 @@ process above against the new edition's text, chapter by chapter:
 4. Update `source.edition` and `source.publishedDate` in every file you
    touch, and update `chapterAuthors`/`url` too if CDC changed them.
 5. If CDC adds a chapter for an antigen already present in
-   `data/antigens/` (their web-only COVID-19/RSV/mpox chapters, for
-   instance), that's a good time to curate a new file rather than waiting —
-   the antigen key is already known.
+   `data/supportingdata/antigens/` (their web-only COVID-19/RSV/mpox
+   chapters, for instance), that's a good time to curate a new file rather
+   than waiting — the antigen key is already known.

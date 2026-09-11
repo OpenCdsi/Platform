@@ -21,14 +21,17 @@ notice as its first lines:
 **Any new source file added to this project must carry this same header** as its first lines,
 before any `using` statements or namespace declaration.
 
-**This license covers this project's own source code only — `src/` and `tests/`.** The `data/`
-directory (all 30 antigen XML files, the Schedule XML file, and both XSDs) is the CDC's own
-published CDSi Logic Specification supporting data. It is not authored by this project, carries
-no MPL notice, and is explicitly excluded from the MPL 2.0 license above — see
-[`data/NOTICE`](data/NOTICE) for its own provenance and status. Works of the U.S. federal
-government are generally not subject to copyright protection domestically under 17 U.S.C. § 105,
-but this is general information, not legal advice — confirm the data's actual usage terms with
-the CDC or your own counsel before relying on that for any specific distribution.
+**This license covers this project's own source code only — `src/` and `tests/`.** Within `data/`,
+`data/supportingdata/` (all 30 antigen XML files, the Schedule XML file, and both XSDs) is the
+CDC's own published CDSi Logic Specification supporting data. It is not authored by this project,
+carries no MPL notice, and is explicitly excluded from the MPL 2.0 license above — see
+[`data/supportingdata/NOTICE`](data/supportingdata/NOTICE) for its own provenance and status.
+Works of the U.S. federal government are generally not subject to copyright protection
+domestically under 17 U.S.C. § 105, but this is general information, not legal advice — confirm
+the data's actual usage terms with the CDC or your own counsel before relying on that for any
+specific distribution. `data/pinkbook/` is different: it's this project's own curated summaries
+of CDC Pink Book content, and so IS covered by the MPL 2.0 license above — see
+[`data/pinkbook/NOTICE`](data/pinkbook/NOTICE) for the distinction.
 
 ## ✅ Build verified
 
@@ -304,8 +307,11 @@ src/OpenCdsi.Mobile/
                      .NET MAUI app (Android + Windows). References Core directly via a
                      same-repo ProjectReference. Mobile.slnx builds just this + Core.
 data/
-  antigens/          All 30 CDC AntigenSupportingData-*.xml files + XSD
-  schedule/          ScheduleSupportingData.xml + XSD (CVX-to-antigen map, vaccine conflicts)
+  supportingdata/
+    antigens/        All 30 CDC AntigenSupportingData-*.xml files + XSD
+    schedule/        ScheduleSupportingData.xml + XSD (CVX-to-antigen map, vaccine conflicts)
+  pinkbook/          Curated CDC Pink Book summaries per antigen (OpenCdsi.ClinicalReference's
+                     own data) - see data/pinkbook/CONTRIBUTING.md
 Dockerfile           Multi-stage build for the Api - see "Cdsi.Api — the dockerized web API"
 docker-compose.yml   Builds and runs the API locally with the data/ volume mounted
 ```

@@ -20,8 +20,8 @@
 
   <!-- Bundle the real CDC supporting-data XML files as test fixtures, copied next to the test binaries. -->
   <ItemGroup>
-    <None Include="..\..\data\antigens\*.xml" Link="TestData\antigens\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\data\schedule\*.xml" Link="TestData\schedule\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\data\supportingdata\antigens\*.xml" Link="TestData\antigens\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\data\supportingdata\schedule\*.xml" Link="TestData\schedule\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
