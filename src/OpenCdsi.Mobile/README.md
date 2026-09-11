@@ -38,6 +38,12 @@ https://github.com/OpenCdsi/Platform/releases/latest/download/opencdsi-mobile-ar
    ```powershell
    Import-Certificate -FilePath .\opencdsi-mobile-signing-cert.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
    ```
+   If you use the double-click GUI wizard instead ("Install Certificate..."), it must go into
+   **Trusted People** — choose "Place all certificates in the following store", Browse, and pick
+   **Trusted People**, not "Trusted Root Certification Authorities" (the wizard's automatic
+   placement also lands there). A cert sitting only in Root will not satisfy MSIX's trust check
+   for a self-signed cert, and the install will fail with `0x800B010A`
+   ("publisher certificate could not be verified").
 3. Double-click the `.msix` to install. Later releases reuse the same certificate, so this
    step doesn't repeat — only the double-click does.
 
