@@ -56,4 +56,20 @@ public class ChapterEndpointTests : IClassFixture<WebApplicationFactory<Program>
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task ReferenceKeys_ReturnsRealChapterKeys()
+    {
+        var response = await _client.GetAsync("/api/v3/reference");
+
+        response.EnsureSuccessStatusCode();
+        var keys = await response.Content.ReadFromJsonAsync<string[]>();
+
+        // Real data: 18 curated Pink Book chapters as of this writing - matches
+        // data/pinkbook/*.json, not every one of the 30 antigens /antigens lists (this is
+        // deliberately a smaller, different set - see ChapterEndpoints' own doc comment).
+        Assert.Equal(18, keys!.Length);
+        Assert.Contains("Diphtheria", keys);
+        Assert.Equal(keys!.OrderBy(k => k, StringComparer.Ordinal), keys);
+    }
 }
