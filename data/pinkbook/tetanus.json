@@ -1,0 +1,39 @@
+{
+  "antigenKey": "Tetanus",
+  "diseaseName": "Tetanus",
+  "organism": "Clostridium tetani, an anaerobic, spore-forming, gram-positive rod. Its spores are heat- and antiseptic-resistant and widely distributed in soil and the intestines/feces of animals and humans. The bacterium produces the neurotoxin tetanospasmin, one of the most potent toxins known (estimated human lethal dose ~175 nanograms for a 70-kg adult).",
+  "clinicalFeaturesSummary": "Incubation period averages 8 days (range 1-21); shorter incubation is associated with more severe disease. Generalized tetanus (over 80% of cases) presents with a descending pattern starting with trismus (lockjaw), then neck stiffness, dysphagia, and abdominal rigidity, with spasms continuing 3-4 weeks and recovery taking months. Localized (uncommon) and cephalic (rare) forms also occur. Neonatal tetanus results from infection of an unhealed umbilical stump in infants born to non-immune mothers, with onset typically around 7 days after birth.",
+  "epidemiologySummary": "Reservoir is soil and the intestinal tracts of animals and humans. Transmission is via contaminated wounds (major or minor) - tetanus is the only vaccine-preventable disease that is infectious but not contagious (no person-to-person spread). Tetanus peaks in summer in temperate climates and occurs year-round (with possible wet-season increases) in the tropics.",
+  "secularTrendsSummary": "Before vaccination, the US reported 500-600 cases annually (about 0.4 per 100,000) in the late 1940s. Incidence declined steadily afterward; since the mid-1970s about 50-100 cases per year have been reported. From 2009-2018 an average of 29 cases per year were reported, with 19 deaths (all in adults 55 or older) among 297 cases; 2018 had 23 cases and no deaths. Adult vaccination coverage lags childhood coverage: only 63.4% of adults reported any tetanus toxoid-containing dose as of 2017.",
+  "vaccineDescription": "Tetanus toxoid is combined with diphtheria toxoid as DT or Td, and with diphtheria toxoid and acellular pertussis as DTaP (children under 7) or Tdap (age 7+). It is also included in combination products with IPV, Hib, and/or HepB (Pediarix, Pentacel, Vaxelis, Kinrix, Quadracel). All are given by intramuscular injection with aluminum adjuvant.",
+  "vaccinationScheduleSummary": "Routine childhood DTaP schedule is 3 primary doses at 2, 4, and 6 months plus boosters at 15-18 months and 4-6 years; adults/adolescents receive Td or Tdap boosters every 10 years.",
+  "supplementalTopics": [
+    {
+      "title": "Wound Management (Tetanus Immune Globulin)",
+      "summary": "Persons with fewer than 3 documented tetanus toxoid doses (or unknown history) should receive both vaccine and, for wounds that are not clean and minor, tetanus immune globulin (TIG) - early toxoid doses may prime the immune system without yet producing immunity, so TIG supplies temporary passive protection in the meantime. Persons with 3 or more prior doses need only a booster: after more than 10 years for clean, minor wounds, or more than 5 years for any other wound. People with HIV infection or severe immunodeficiency should receive TIG for any contaminated wound, including minor ones, regardless of vaccination history."
+    },
+    {
+      "title": "Vaccination During Pregnancy",
+      "summary": "Pregnant women who completed the childhood schedule but were last vaccinated more than 10 years ago should receive a booster dose to prevent neonatal tetanus. For a previously unvaccinated woman, risk to the newborn is minimal after at least 2 properly spaced tetanus toxoid-containing doses during pregnancy, at least one of which should be Tdap; the full 3-dose primary series should be completed at the recommended intervals."
+    }
+  ],
+  "contraindicationsSummary": "A severe allergic reaction to a vaccine component or a prior dose, or encephalopathy within 7 days of a prior DTaP/Tdap dose not attributable to another cause, is a contraindication. Precautions include moderate or severe acute illness (though vaccine should still be given as part of wound management if the wound itself warrants it), a progressive or unstable neurological disorder, uncontrolled seizures, progressive encephalopathy, Guillain-Barre syndrome within 6 weeks of a prior tetanus toxoid-containing dose, and a history of an Arthus-type reaction to a prior diphtheria- or tetanus toxoid-containing dose (defer at least 10 years in that case).",
+  "vaccineSafetySummary": "Local reactions (pain, redness, or swelling) are common: 20%-40% of DTaP recipients per dose, and 21%-75% of Tdap/Td recipients, generally self-limited. Moderate or severe systemic reactions occur in fewer than 1 in 10,000 doses. After a complete primary series plus booster, essentially all recipients reach antitoxin levels well above the protective threshold, but levels decline over time, which is why routine boosters are recommended every 10 years.",
+  "vaccineStorageSummary": "DTaP, Td, and Tdap must be stored at refrigerator temperature, 2C to 8C (36F to 46F). See CDC's Vaccine Storage and Handling Toolkit for complete guidance.",
+  "surveillanceSummary": "Diagnosis of tetanus is entirely clinical (C. tetani is recovered from the wound in only about 30% of cases), so surveillance and reporting rely on clinical case definitions rather than laboratory confirmation. See CDC's Manual for the Surveillance of Vaccine-Preventable Diseases for state/local reporting guidance.",
+  "keyPoints": [
+    "Tetanus toxoid was developed in 1924 and first widely used during World War II",
+    "Tetanospasmin blocks release of inhibitory neurotransmitters, causing unopposed muscle contraction and spasm",
+    "The only vaccine-preventable disease that is infectious but not contagious - no person-to-person spread",
+    "Generalized tetanus (lockjaw progressing to full-body rigidity) accounts for over 80% of reported cases",
+    "US cases fell from 500-600/year (late 1940s) to an average of 29/year (2009-2018); nearly all recent deaths were in adults 55+",
+    "Wound management, not just routine schedule, drives an important part of tetanus prevention - booster timing depends on wound type and vaccination history",
+    "Store DTaP/Td/Tdap at 2C-8C (36F-46F)"
+  ],
+  "source": {
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "chapterAuthors": "Tejpratap S.P. Tiwari, MD; Pedro L. Moro, MD, MPH; Anna M. Acosta, MD",
+    "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/tetanus.html",
+    "publishedDate": "2021-08-01"
+  }
+}

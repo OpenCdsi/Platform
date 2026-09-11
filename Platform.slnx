@@ -6,10 +6,12 @@
     <Project Path="src/OpenCdsi.VaxEngine.Functions/OpenCdsi.VaxEngine.Functions.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Demo/OpenCdsi.VaxEngine.Demo.csproj" />
     <Project Path="src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj" />
+    <Project Path="src/OpenCdsi.ClinicalReference/OpenCdsi.ClinicalReference.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenCdsi.VaxEngine.Core.Tests/OpenCdsi.VaxEngine.Core.Tests.csproj" />
     <Project Path="tests/OpenCdsi.VaxEngine.Api.Tests/OpenCdsi.VaxEngine.Api.Tests.csproj" />
     <Project Path="tests/OpenCdsi.VaxEngine.Conformance.Tests/OpenCdsi.VaxEngine.Conformance.Tests.csproj" />
+    <Project Path="tests/OpenCdsi.ClinicalReference.Tests/OpenCdsi.ClinicalReference.Tests.csproj" />
   </Folder>
 </Solution>
