@@ -44,6 +44,15 @@
             font-weight: 600;
             font-size: 16px;
         }
+        /* #F27A30 is opencdsi.org's own --brand-orange CSS variable, not this repo's
+           Colors.xaml BrandAccent (#F58231) - the two have drifted slightly apart, and this
+           was asked to match the home page specifically. */
+        #opencdsi-header a span {
+            transition: color 0.15s ease;
+        }
+        #opencdsi-header a:hover span {
+            color: #F27A30;
+        }
         #opencdsi-header img {
             height: 32px;
             width: 32px;
@@ -79,6 +88,50 @@
         #opencdsi-footer img {
             height: 18px;
             width: 18px;
+        }
+
+        /* OpenCdsi brand palette applied to the body Swagger UI itself renders - the exact hex
+           values from src/OpenCdsi.Mobile/Resources/Styles/Colors.xaml's BrandPrimary/
+           BrandSecondary/BrandAccent/BrandPrimaryTint (derived from the logo mark), so the API
+           docs and the mobile app read as the same product. Deliberately leaves the
+           opblock-summary-method GET/POST/etc. colors alone - swagger-ui.css's own selectors
+           for those aren't touched here, consistent with Colors.xaml's own comment that brand
+           colors and semantic/status colors are kept separate on purpose.
+           This must come after %(StylesPath)'s <link> above to win the cascade (equal
+           specificity, later wins) without needing !important. */
+        .swagger-ui {
+            background-color: #F7F6F3; /* SurfacePage */
+        }
+        .swagger-ui .scheme-container {
+            background-color: #FFFFFF; /* SurfaceCard */
+            border: 1px solid #E3E1D9; /* Border */
+            box-shadow: none;
+        }
+        .swagger-ui .info a {
+            color: #911EB4; /* BrandPrimary */
+        }
+        .swagger-ui .info a:hover {
+            color: #4363D8; /* BrandSecondary */
+        }
+        .swagger-ui .info .title small.version-stamp {
+            background-color: #F58231; /* BrandAccent */
+        }
+        .swagger-ui .opblock-tag {
+            color: #911EB4; /* BrandPrimary */
+        }
+        .swagger-ui .opblock-tag:hover {
+            background: #F3E5F8; /* BrandPrimaryTint */
+        }
+        .swagger-ui .btn.execute {
+            background-color: #911EB4; /* BrandPrimary */
+            border-color: #911EB4;
+        }
+        .swagger-ui .btn.execute:hover {
+            background-color: #4363D8; /* BrandSecondary */
+            border-color: #4363D8;
+        }
+        .swagger-ui select:focus {
+            border-color: #911EB4; /* BrandPrimary */
         }
     </style>
 </head>
