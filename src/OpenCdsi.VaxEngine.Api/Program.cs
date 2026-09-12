@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen(options =>
     // alone would be enough - it explicitly wasn't.
     options.SwaggerDoc("v3", new Microsoft.OpenApi.OpenApiInfo
     {
-        Title = "CDSi Immunization Engine API",
+        Title = "OpenCdsi VaxEngine API",
         Version = "v3",
         // The q/fields narrative matches the exact HTML-in-info.description pattern the real
         // NodeJS "CDSi Supporting Data API" this project replicates already uses (confirmed
@@ -167,7 +167,7 @@ if (app.Environment.IsDevelopment())
     // stated explicitly here so the two stay in sync if the document name ever changes again.
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v3/swagger.json", "CDSi Immunization Engine API v3");
+        options.SwaggerEndpoint("/swagger/v3/swagger.json", "OpenCdsi VaxEngine API v3");
     });
 }
 
