@@ -1,0 +1,108 @@
+<!-- Custom Swagger UI shell - based on Swashbuckle.AspNetCore.SwaggerUI's own default
+     embedded index.html (dumped from the installed 10.2.3 package to keep the required
+     %(...) substitution tokens exact - see SwaggerUIMiddleware.GetIndexArguments), with an
+     OpenCdsi.org header added above #swagger-ui and a footer added below it.
+
+     Swagger UI renders its own topbar logo (linking to swagger.io) asynchronously, as part of
+     a React tree mounted into #swagger-ui - there's no config option to suppress just the logo.
+     An earlier version of this file waited for that node and physically relocated it into the
+     footer via appendChild; confirmed by testing that this silently breaks it, because
+     React attaches click handling via event delegation on its own root container
+     (#swagger-ui) - once the node is moved outside that root, clicks bubble past it and the
+     link does nothing (no href attribute either, so there's no native fallback). Instead: the
+     original is hidden in place via CSS (#opencdsi-footer-link-source below), and the footer
+     link is a plain, static recreation using the same favicon-32x32.png Swagger UI's own
+     default index.html already relies on (see the <link rel="icon"> above) - no dependence on
+     swagger-ui-dist's internal DOM/React structure, so it can't be silently broken by a future
+     Swashbuckle/swagger-ui-dist version bump the way the live-DOM-move approach was. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>%(DocumentTitle)</title>
+    <link rel="stylesheet" type="text/css" href="%(StylesPath)">
+    <link rel="stylesheet" type="text/css" href="./index.css">
+    <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16" />
+    %(HeadContent)
+    <style>
+        #opencdsi-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 10px 20px;
+            background-color: #1b1b1b;
+            border-bottom: 1px solid #333;
+        }
+        #opencdsi-header a {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: #fff;
+            text-decoration: none;
+            font-family: sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        #opencdsi-header img {
+            height: 32px;
+            width: 32px;
+        }
+        /* Hides Swagger UI's own top-left logo/link in place (not removed - see header comment
+           above for why moving the actual node breaks it). The "Select a definition" dropdown
+           next to it is a different element and is unaffected. */
+        .swagger-ui .topbar .link {
+            display: none;
+        }
+        #opencdsi-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 14px;
+            background-color: #1b1b1b;
+            border-top: 1px solid #333;
+            font-family: sans-serif;
+            font-size: 12px;
+            color: #ccc;
+        }
+        #opencdsi-footer a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #ccc;
+            text-decoration: none;
+        }
+        #opencdsi-footer a:hover {
+            color: #fff;
+        }
+        #opencdsi-footer img {
+            height: 18px;
+            width: 18px;
+        }
+    </style>
+</head>
+
+<body>
+    <header id="opencdsi-header">
+        <a href="https://opencdsi.org" target="_blank" rel="noopener noreferrer">
+            <img src="/opencdsi-logo.svg" alt="OpenCdsi.org logo" />
+            <span>OpenCdsi.org</span>
+        </a>
+    </header>
+
+    <div id="swagger-ui"></div>
+
+    <footer id="opencdsi-footer">
+        <span>Powered by</span>
+        <a href="https://swagger.io" target="_blank" rel="noopener noreferrer">
+            <img src="./favicon-32x32.png" alt="Swagger UI logo" />
+            <span>Swagger UI</span>
+        </a>
+    </footer>
+
+    <script src="%(ScriptBundlePath)" charset="utf-8"></script>
+    <script src="%(ScriptPresetsPath)" charset="utf-8"></script>
+    <script src="index.js" charset="utf-8"></script>
+</body>
+</html>

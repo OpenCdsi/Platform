@@ -76,6 +76,10 @@ builder.Services.AddSingleton(_ => ClinicalReferenceRepository.Load(Path.Combine
 
 var app = builder.Build();
 
+// Serves wwwroot/opencdsi-logo.svg, used by the custom Swagger UI header below - the only
+// static asset this API serves, so there's no broader need for it outside that.
+app.UseStaticFiles();
+
 // Swagger UI/JSON are only exposed outside Production - this is a clinical data API, and
 // leaving interactive API docs always reachable means anyone who can hit this port can browse
 // the full API surface and fire test requests at it. AddSwaggerGen/AddEndpointsApiExplorer
@@ -168,6 +172,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v3/swagger.json", "OpenCdsi VaxEngine API v3");
+        // Custom shell (SwaggerUI/index.html) swaps the OpenCdsi.org logo into the header and
+        // relocates Swagger UI's own SmartBear-branded topbar link into a footer - see that
+        // file's own header comment for why IndexStream (not InjectStylesheet/InjectJavascript)
+        // was the right tool here. AppContext.BaseDirectory, not a path relative to the current
+        // directory, so this resolves correctly regardless of where `dotnet` is invoked from.
+        options.IndexStream = () => File.OpenRead(Path.Combine(AppContext.BaseDirectory, "SwaggerUI", "index.html"));
     });
 }
 

@@ -32,4 +32,14 @@
     <ProjectReference Include="..\OpenCdsi.ClinicalReference\OpenCdsi.ClinicalReference.csproj" />
   </ItemGroup>
 
+  <!-- SwaggerUI/index.html is our custom Swagger UI shell (see Program.cs's options.IndexStream)
+       - it lives outside wwwroot, so unlike wwwroot's own contents (handled by the Static Web
+       Assets feature) it needs an explicit Content item to land next to the built/published DLL,
+       where AppContext.BaseDirectory-relative File.OpenRead expects to find it. -->
+  <ItemGroup>
+    <Content Include="SwaggerUI\index.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
