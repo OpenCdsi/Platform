@@ -147,16 +147,11 @@
         .swagger-ui .info .title small.version-stamp {
             background-color: #F58231; /* BrandAccent */
         }
-        /* BrandSecondary (blue), not BrandPrimary (purple) - purple visually fought with
-           swagger-ui's own blue/green (GET/POST method colors, links, etc.) on this specific
-           element. Colors.xaml has no BrandSecondary tint counterpart to BrandPrimaryTint, so
-           the hover background is BrandSecondary at low alpha instead of a second named color. */
-        .swagger-ui .opblock-tag {
-            color: #4363D8; /* BrandSecondary */
-        }
-        .swagger-ui .opblock-tag:hover {
-            background: rgba(67, 99, 216, 0.08); /* BrandSecondary @ 8% */
-        }
+        /* Tag headers (VaxEngine/Supporting Data/Clinical Reference) deliberately left at
+           swagger-ui's own default text color (near-black, no override here) rather than a
+           brand color - tried BrandPrimary (purple), then BrandSecondary (blue), and both
+           still fought with swagger-ui's own blue/green (GET/POST method colors, links). The
+           logo and the "v3" badge already carry enough brand color on this page. */
         .swagger-ui .btn.execute {
             background-color: #911EB4; /* BrandPrimary */
             border-color: #911EB4;
