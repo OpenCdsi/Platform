@@ -26,13 +26,28 @@
     <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16" />
     %(HeadContent)
     <style>
+        /* Overlaid onto Swagger UI's own .topbar row instead of sitting in its own row above it,
+           so the OpenCdsi.org logo/link and the "Select a definition" dropdown read as one line.
+           This works because hiding .swagger-ui .topbar .link below (Swagger's own logo) leaves
+           its layout space empty rather than collapsing it: .topbar .download-url-wrapper has a
+           216px margin-left baked into swagger-ui.css to sit next to that logo, confirmed by
+           measuring the live layout - that's exactly the reserved slot this now fills.
+           position:absolute takes #opencdsi-header out of document flow entirely, so #swagger-ui
+           (and .topbar, its first child) shifts up to occupy the row this would otherwise have
+           taken - no explicit "position:relative" needed on an ancestor for that top:0/left:0 to
+           land in the right place, since nothing else establishes one. No hardcoded height: this
+           box's own intrinsic height (padding + the 32px logo) lands within a pixel or two of
+           .topbar's own (padding + its ~30px form control) - a coincidence of both using the
+           same 10px vertical padding, not a value copied from swagger-ui.css. */
         #opencdsi-header {
+            position: absolute;
+            top: 0;
+            left: 0;
             display: flex;
             align-items: center;
             gap: 0.6rem;
             padding: 10px 20px;
-            background-color: #1b1b1b;
-            border-bottom: 1px solid #333;
+            z-index: 1;
         }
         #opencdsi-header a {
             display: flex;
@@ -61,6 +76,22 @@
            above for why moving the actual node breaks it). The "Select a definition" dropdown
            next to it is a different element and is unaffected. */
         .swagger-ui .topbar .link {
+            display: none;
+        }
+        /* swagger-ui.css (.swagger-ui has container-type:inline-size) only reserves this
+           216px margin-left - the exact slot #opencdsi-header's overlay above fills - above a
+           container-query width threshold; below it, the rule drops out and
+           download-url-wrapper's margin collapses to 0, sliding "Select a definition" left to
+           directly underneath our overlaid logo/text (confirmed by testing at a ~530px wide
+           viewport). Forcing the same value unconditionally, rather than leaving it to that
+           breakpoint, keeps the reserved slot present at every width. */
+        .swagger-ui .topbar .download-url-wrapper {
+            margin-left: 216px !important;
+        }
+        /* Removes the light/dark mode switch from the topbar - this page doesn't support a dark
+           mode of its own (the OpenCdsi brand palette below is one fixed light theme), so the
+           toggle would just break the page's own styling if clicked. */
+        .swagger-ui .topbar .dark-mode-toggle {
             display: none;
         }
         #opencdsi-footer {
@@ -116,11 +147,15 @@
         .swagger-ui .info .title small.version-stamp {
             background-color: #F58231; /* BrandAccent */
         }
+        /* BrandSecondary (blue), not BrandPrimary (purple) - purple visually fought with
+           swagger-ui's own blue/green (GET/POST method colors, links, etc.) on this specific
+           element. Colors.xaml has no BrandSecondary tint counterpart to BrandPrimaryTint, so
+           the hover background is BrandSecondary at low alpha instead of a second named color. */
         .swagger-ui .opblock-tag {
-            color: #911EB4; /* BrandPrimary */
+            color: #4363D8; /* BrandSecondary */
         }
         .swagger-ui .opblock-tag:hover {
-            background: #F3E5F8; /* BrandPrimaryTint */
+            background: rgba(67, 99, 216, 0.08); /* BrandSecondary @ 8% */
         }
         .swagger-ui .btn.execute {
             background-color: #911EB4; /* BrandPrimary */
