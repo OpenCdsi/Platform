@@ -83,15 +83,22 @@
         .swagger-ui .topbar .link {
             display: none;
         }
-        /* swagger-ui.css (.swagger-ui has container-type:inline-size) only reserves this
-           216px margin-left - the exact slot #opencdsi-header's overlay above fills - above a
-           container-query width threshold; below it, the rule drops out and
-           download-url-wrapper's margin collapses to 0, sliding "Select a definition" left to
-           directly underneath our overlaid logo/text (confirmed by testing at a ~530px wide
-           viewport). Forcing the same value unconditionally, rather than leaving it to that
-           breakpoint, keeps the reserved slot present at every width. */
-        .swagger-ui .topbar .download-url-wrapper {
-            margin-left: 216px !important;
+        /* Reserves room for #opencdsi-header's overlay by padding the row it sits in, rather
+           than touching .download-url-wrapper directly. swagger-ui.css gives that element
+           `margin-left:auto` (a flexbox trick that pushes it - and only it - to the row's right
+           edge) plus `flex:3`/`max-width:600px`; a wide container leaves the auto-margin some
+           free space to absorb, so it hugs the right edge, but a narrower one has the element
+           grow to fill the whole row instead, since flex-grow is resolved before any leftover
+           space reaches the auto margin - which is exactly why it slid left under our overlaid
+           logo/text at a ~530px test width. An EARLIER version of this rule "fixed" that by
+           forcing a flat `margin-left:216px !important` on the element - it stopped the overlap,
+           but also permanently overrode that auto-margin push-right behavior, so the dropdown
+           stopped hugging the right edge at every width instead, reported as looking centered in
+           the topbar rather than right-aligned. Padding the row's own left edge instead shrinks
+           the space that auto-margin math runs over, so download-url-wrapper's built-in
+           right-alignment keeps working unmodified at every width. */
+        .swagger-ui .topbar .topbar-wrapper {
+            padding-left: 200px;
         }
         /* Removes the light/dark mode switch from the topbar - this page doesn't support a dark
            mode of its own (the OpenCdsi brand palette below is one fixed light theme), so the
