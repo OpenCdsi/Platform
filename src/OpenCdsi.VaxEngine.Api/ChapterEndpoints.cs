@@ -11,8 +11,8 @@ namespace OpenCdsi.VaxEngine.Api;
 /// <summary>
 /// GET /api/v3/antigens/{name}/ref and GET /api/v3/reference/{name} - both resolve to the same
 /// curated Pink Book chapter (OpenCdsi.ClinicalReference), just reachable from two discovery
-/// paths: nested under the existing antigen resource, and as its own standalone "Reference"
-/// collection. Antigen name lookups are case-insensitive, matching every other name-keyed lookup
+/// paths: nested under the existing antigen resource, and as its own standalone "Clinical
+/// Reference" collection. Antigen name lookups are case-insensitive, matching every other name-keyed lookup
 /// in this API (see AntigenEndpoints). A missing chapter is expected for antigens the current
 /// Pink Book edition doesn't cover - see ClinicalReferenceRepository.TryGetByAntigen - so that's a
 /// 404, not an error.
@@ -30,7 +30,7 @@ public static class ChapterEndpoints
     {
         group.MapGet("/reference", (ClinicalReferenceRepository refData) => Results.Ok(GetKeys(refData)))
             .WithName("GetReferenceKeys")
-            .WithTags("Reference");
+            .WithTags("Clinical Reference");
 
         group.MapGet("/antigens/{name}/ref", (string name, ClinicalReferenceRepository refData) =>
             FindChapter(refData, name) is { } chapter ? Results.Ok(ReferenceDataMapping.ToDto(chapter)) : Results.NotFound())
@@ -40,7 +40,7 @@ public static class ChapterEndpoints
         group.MapGet("/reference/{name}", (string name, ClinicalReferenceRepository refData) =>
             FindChapter(refData, name) is { } chapter ? Results.Ok(ReferenceDataMapping.ToDto(chapter)) : Results.NotFound())
             .WithName("GetReferenceByAntigen")
-            .WithTags("Reference");
+            .WithTags("Clinical Reference");
     }
 
     private static IReadOnlyList<string> GetKeys(ClinicalReferenceRepository refData) =>
