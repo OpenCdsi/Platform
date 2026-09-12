@@ -1,5 +1,5 @@
 # Builds and runs the CDSi Immunization Engine API. `docker compose up --build` from the repo
-# root builds the image from the root Dockerfile and starts the API on http://localhost.
+# root builds the image from the root Dockerfile and starts the API on http://localhost:8080.
 #
 # The image already ships its own copy of data/ (see the Dockerfile), so this mount isn't
 # required for the container to run. It's kept here for local dev: bind-mounting the real
@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80:8080"
+      - "8080:8080"
     volumes:
       - ./data:/data:ro
     environment:
