@@ -30,6 +30,10 @@ COPY src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj src/OpenCdsi.VaxEn
 RUN dotnet restore src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj -a $TARGETARCH
 
 COPY src/OpenCdsi.VaxEngine.Core/ src/OpenCdsi.VaxEngine.Core/
+# OpenCdsi.ClinicalReference.csproj embeds data/pinkbook/*.json and NOTICE as Content items
+# (CopyToOutputDirectory), resolved via a "../../data/pinkbook" relative path from the project
+# directory - needed here at publish time, not just in the runtime stage's own copy below.
+COPY data/pinkbook/ data/pinkbook/
 COPY src/OpenCdsi.ClinicalReference/ src/OpenCdsi.ClinicalReference/
 COPY src/OpenCdsi.VaxEngine.Contracts/ src/OpenCdsi.VaxEngine.Contracts/
 COPY src/OpenCdsi.VaxEngine.Api/ src/OpenCdsi.VaxEngine.Api/
@@ -48,10 +52,14 @@ RUN apt-get update \
 
 COPY --from=build /app .
 
+# The repo's data/ ships inside the image so a freshly `docker run`/`docker pull`'d container is
+# immediately runnable with no volume required. VOLUME /data below still makes /data a mount
+# point: bind-mounting a host directory there (see README's "top priority is easy updates" note)
+# hides this baked-in copy, so a CDC schedule/logic update remains a volume content swap, not an
+# image rebuild, for anyone who wants that workflow.
+COPY data/ /data/
+
 ENV ASPNETCORE_URLS=http://+:8080
-# CDSI_DATA_PATH: deliberately NOT baked into the image (see README's "top priority is easy
-# updates" note) - mount the real data/ directory as a volume at /data instead, so a CDC
-# schedule/logic update is a volume content change, not an image rebuild.
 ENV CDSI_DATA_PATH=/data
 
 EXPOSE 8080

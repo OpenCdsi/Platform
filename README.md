@@ -777,9 +777,11 @@ condition.
 - **Never delete superseded reference data** when the CDC ships an update. Age/Interval/
   ConditionalSkip rules are versioned by effective/cessation date specifically so a dose given
   years ago can still be evaluated against the rule that applied *then*.
-- Reference data should be mounted as a volume in the eventual Docker deployment
-  (`data/` → e.g. `/data`), not baked into the image — that's the whole point of the
-  data-driven design given the "easy updates" priority.
+- Reference data should support being mounted as a volume in the eventual Docker deployment
+  (`data/` → e.g. `/data`) so it can be swapped without a rebuild — that's the whole point of
+  the data-driven design given the "easy updates" priority. (The image also ships its own copy
+  of `data/` as a default, so a container is runnable with no mount at all; see "The data
+  volume" below.)
 
 ## Correction: §8 depends on §7, not the other way around
 
@@ -1440,16 +1442,20 @@ as a follow-up gap.
   Aimed at onboarding people to the CDSi process model and at clinician-facing patient
   communication; human-readable reason text is a separate project.
 
-### The data volume, not baked into the image
+### The data volume - baked in by default, still overridable
 
-Consistent with this project's stated top priority ("easy updates when CDC schedule/logic
-changes"): `data/` is mounted read-only into the container (`./data:/data:ro` in
-`docker-compose.yml`) rather than `COPY`'d into the image. Updating the CDC's supporting data is
-a matter of replacing files under `./data` and restarting the container - not rebuilding the
-image. See "Seeding the CDC reference data" above for where to get that data and how it's laid
-out. `ReferenceDataRepository` is loaded once at startup as a singleton and resolved eagerly
-(not lazily on first request), so a bad data path fails fast with a clear startup error instead
-of surfacing as a confusing 500 on an EHR integration's first real request.
+The Dockerfile `COPY`'s `data/` into the image at `/data`, so any container - local build or the
+released GHCR image - is runnable standalone with no volume required. `/data` is also declared as
+a `VOLUME`, so it remains a normal Docker mount point: bind-mounting a host directory there (as
+`docker-compose.yml` does with `./data:/data:ro`) hides the image's baked-in copy underneath it,
+consistent with this project's stated top priority ("easy updates when CDC schedule/logic
+changes"). With the mount in place, updating the CDC's supporting data is a matter of replacing
+files under `./data` and restarting the container - not rebuilding the image. Without a mount, the
+container falls back to whatever `data/` looked like at image build time. See "Seeding the CDC
+reference data" above for where to get that data and how it's laid out. `ReferenceDataRepository`
+is loaded once at startup as a singleton and resolved eagerly (not lazily on first request), so a
+bad data path fails fast with a clear startup error instead of surfacing as a confusing 500 on an
+EHR integration's first real request.
 
 ### Released via `backend-v*` tags — image on GHCR
 
@@ -1479,8 +1485,16 @@ Image tags (via `docker/metadata-action`):
 | `backend-v1.2.3`     | `1.2.3`, `1.2`, `1`, `latest`, `sha-<commit>`                |
 | `backend-v1.2.3-rc.1`| `1.2.3-rc.1`, `sha-<commit>` (no `latest`, no `1.2` / `1`)   |
 
-The data volume still isn't baked in (see above) - a released image is run the same way as the
-local one:
+The released image ships its own copy of `data/` (see above), so it runs standalone with no
+volume:
+
+```bash
+docker run -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production \
+  ghcr.io/opencdsi/platform/vaxengine-api:latest
+```
+
+To run it against newer CDC data than whatever was baked in at image build time, mount a host
+directory over `/data` the same way `docker-compose.yml` does locally:
 
 ```bash
 docker run -p 8080:8080 -v "$PWD/data:/data:ro" \
