@@ -1,0 +1,82 @@
+# Copies the backend image that "Release Backend (image)" (release-backend.yml) just built and
+# pushed to GHCR (ghcr.io/<owner>/platform/vaxengine-api) over to Google Artifact Registry.
+#
+# This intentionally does NOT rebuild the image - it re-tags the exact multi-arch manifest that
+# release-backend.yml already validated and pushed, using `docker buildx imagetools create` (a
+# plain `docker pull`+`push` only round-trips the runner's own platform and would silently drop
+# the other arch from the multi-arch manifest list).
+#
+# Source tag is the long-form git-sha tag release-backend.yml's metadata-action step always
+# produces (`sha-<40 char sha>`), addressed via the completed run's head_sha - stable regardless
+# of which ref/tag triggered that run.
+
+name: Publish to Artifact Registry
+
+on:
+  workflow_run:
+    workflows: ["Release Backend (image)"]
+    types: [completed]
+
+env:
+  PROJECT_ID: 'opencdsi-api'
+  GAR_LOCATION: 'us-central1'
+  GAR_REPO: 'opencdsi-repo'
+  IMAGE_NAME: 'api-image'
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/384676496236/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+  SERVICE_ACCOUNT: 'github-actions-sa@opencdsi-api.iam.gserviceaccount.com'
+
+jobs:
+  publish-to-gar:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'   # Required for requesting the JWT from GitHub's OIDC provider
+      packages: 'read'    # Required to pull the source image back out of GHCR
+
+    steps:
+    - name: Compute source and destination tags
+      id: tags
+      run: |
+        SHA="${{ github.event.workflow_run.head_sha }}"
+        SOURCE_IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/vaxengine-api:sha-${SHA}"
+        DEST_BASE="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPO}/${IMAGE_NAME}"
+        echo "source=${SOURCE_IMAGE}" >> "$GITHUB_OUTPUT"
+        echo "latest=${DEST_BASE}:latest" >> "$GITHUB_OUTPUT"
+        echo "sha_tag=${DEST_BASE}:${SHA}" >> "$GITHUB_OUTPUT"
+
+    # Step 1: Authenticate to Google Cloud using WIF
+    - name: Google Auth
+      id: auth
+      uses: 'google-github-actions/auth@v2'
+      with:
+        token_format: 'access_token'
+        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ env.SERVICE_ACCOUNT }}
+
+    # Step 2: Authenticate Docker to Artifact Registry
+    - name: Docker Auth (Artifact Registry)
+      uses: 'docker/login-action@v3'
+      with:
+        registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
+        username: 'oauth2accesstoken'
+        password: '${{ steps.auth.outputs.access_token }}'
+
+    # Step 3: Authenticate Docker to GHCR so we can read back the image release-backend.yml pushed
+    - name: Docker Auth (GHCR)
+      uses: 'docker/login-action@v3'
+      with:
+        registry: 'ghcr.io'
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Step 4: Copy the multi-arch manifest from GHCR to Artifact Registry without rebuilding
+    - name: Copy image to Artifact Registry
+      run: |
+        docker buildx imagetools create \
+          --tag "${{ steps.tags.outputs.latest }}" \
+          --tag "${{ steps.tags.outputs.sha_tag }}" \
+          "${{ steps.tags.outputs.source }}"
