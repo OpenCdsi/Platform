@@ -4,8 +4,8 @@
 #
 # This repo is a monorepo with several independently-tagged solutions (see Engine.slnx,
 # Backend.slnx, Mobile.slnx, Platform.slnx at the root) - this workflow is scoped to Engine.slnx's
-# own dependency set via the paths filter below, so an Api/Functions-only or Mobile-only change
-# doesn't trigger it. See build-backend.yml for the Api/Functions counterpart, and
+# own dependency set via the paths filter below, so an Api-only or Mobile-only change
+# doesn't trigger it. See build-backend.yml for the Api counterpart, and
 # build-mobile.yml for Mobile.
 #
 # Core.Tests, Conformance.Tests, and ClinicalReference.Tests are run as three SEPARATE steps,

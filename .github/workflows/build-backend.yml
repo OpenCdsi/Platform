@@ -1,4 +1,4 @@
-# Builds and tests Backend.slnx (Core, Contracts, Api, Functions, plus Api.Tests) on any push to
+# Builds and tests Backend.slnx (Core, Contracts, Api, plus Api.Tests) on any push to
 # main or PR that touches those projects, or the reference data they load.
 #
 # This repo is a monorepo with several independently-tagged solutions (see Engine.slnx,
@@ -21,7 +21,6 @@ on:
       - 'src/OpenCdsi.VaxEngine.Core/**'
       - 'src/OpenCdsi.VaxEngine.Contracts/**'
       - 'src/OpenCdsi.VaxEngine.Api/**'
-      - 'src/OpenCdsi.VaxEngine.Functions/**'
       - 'tests/OpenCdsi.VaxEngine.Api.Tests/**'
       - 'data/**'
       - 'Backend.slnx'
@@ -30,7 +29,6 @@ on:
       - 'src/OpenCdsi.VaxEngine.Core/**'
       - 'src/OpenCdsi.VaxEngine.Contracts/**'
       - 'src/OpenCdsi.VaxEngine.Api/**'
-      - 'src/OpenCdsi.VaxEngine.Functions/**'
       - 'tests/OpenCdsi.VaxEngine.Api.Tests/**'
       - 'data/**'
       - 'Backend.slnx'

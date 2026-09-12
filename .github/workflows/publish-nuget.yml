@@ -1,12 +1,12 @@
 # Publishes the OpenCdsi.VaxEngine package to GitHub Packages whenever an engine-vX.Y.Z tag is
 # pushed to main. This repo is a monorepo containing several independently-released
 # solutions (Engine, Backend, Mobile), each tagged with its own prefix - this workflow only
-# reacts to the engine-v prefix, so an api/functions/mobile-only release doesn't touch this
+# reacts to the engine-v prefix, so an api/mobile-only release doesn't touch this
 # package at all, and this package's own release doesn't trigger anyone else's build.
 #
 # Deliberately narrow in scope: this workflow only builds and publishes src/OpenCdsi.VaxEngine.Core - the one
 # project actually meant for external, NuGet consumption (e.g. a .NET MAUI app referencing it).
-# OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Functions/OpenCdsi.VaxEngine.Demo and the reference data under data/ are not part of this -
+# OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Demo and the reference data under data/ are not part of this -
 # they're deployed differently (see the repo's own Dockerfile/docker-compose.yml), and bundling
 # them into this package would contradict the project's own stated goal of keeping schedule data
 # externally updatable without a new package release (see OpenCdsi.VaxEngine.Core.csproj's own comments).

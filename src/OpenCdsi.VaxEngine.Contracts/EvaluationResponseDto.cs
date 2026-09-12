@@ -5,8 +5,8 @@
 namespace OpenCdsi.VaxEngine.Contracts;
 
 /// <summary>
-/// The full response body for POST /api/v3/evaluate (and the Functions "Evaluate" surface) - the
-/// §4.4/§6 EVALUATION half of the CDSi process: how each already-administered dose graded out,
+/// The full response body for POST /api/v3/evaluate - the §4.4/§6 EVALUATION half of the CDSi
+/// process: how each already-administered dose graded out,
 /// rather than the §7-§9 FORECAST half /forecast exposes. Same request shape (ForecastRequestDto)
 /// as /forecast - see EvaluationResponseMapping.
 /// </summary>

@@ -13,7 +13,7 @@
          at all (confirmed by a real CI failure, NETSDK1047 - see Mobile.csproj's ProjectReference
          comment for the full history of what this took to actually get right). Core has no
          native/platform-specific code, so this doesn't change its actual compiled output for any
-         consumer (Api/Functions/Demo/external NuGet) - it only adds RID-qualified restore-graph
+         consumer (Api/Demo/external NuGet) - it only adds RID-qualified restore-graph
          entries alongside the existing plain net10.0 one. Mobile's own ProjectReference to Core
          strips RuntimeIdentifier from what actually reaches Core at BUILD time (a real, open,
          currently-unresolved Microsoft SDK bug otherwise causes Core to be asked to build

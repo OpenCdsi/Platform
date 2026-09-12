@@ -13,7 +13,7 @@ namespace OpenCdsi.VaxEngine.Core.Pipeline;
 /// winning series per antigen - added for OpenCdsi.VaxEngine.Conformance.Tests, which needs to check
 /// individual administered-dose outcomes (Valid/NotValid/Reason per §6, not just the merged
 /// §9 vaccine-group-level forecast). The original Execute(...) overload below is unchanged and
-/// still returns just VaccineGroupForecasts - every existing caller (OpenCdsi.VaxEngine.Api, OpenCdsi.VaxEngine.Functions,
+/// still returns just VaccineGroupForecasts - every existing caller (OpenCdsi.VaxEngine.Api,
 /// OpenCdsi.VaxEngine.Demo) that doesn't need per-dose detail is unaffected.
 /// </summary>
 public sealed class PatientForecastResult

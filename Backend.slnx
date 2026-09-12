@@ -3,7 +3,6 @@
     <Project Path="src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Contracts/OpenCdsi.VaxEngine.Contracts.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj" />
-    <Project Path="src/OpenCdsi.VaxEngine.Functions/OpenCdsi.VaxEngine.Functions.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenCdsi.VaxEngine.Api.Tests/OpenCdsi.VaxEngine.Api.Tests.csproj" />

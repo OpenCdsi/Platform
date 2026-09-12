@@ -19,8 +19,8 @@ WORKDIR /src
 # Only the .csproj files OpenCdsi.VaxEngine.Api actually depends on (itself, OpenCdsi.VaxEngine.Contracts, OpenCdsi.VaxEngine.Core,
 # OpenCdsi.ClinicalReference) are copied for the restore-caching step - restoring
 # OpenCdsi.VaxEngine.Api.csproj directly (not the whole OpenCdsi.VaxEngine.sln) means this image
-# build never needs to know about OpenCdsi.VaxEngine.Demo, OpenCdsi.VaxEngine.Functions, or either
-# test project, none of which are part of what gets published here. Also means adding a new
+# build never needs to know about OpenCdsi.VaxEngine.Demo or either test project, none of which
+# are part of what gets published here. Also means adding a new
 # project to the solution later doesn't require touching this Dockerfile unless OpenCdsi.VaxEngine.Api
 # itself gains a new dependency.
 COPY src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj src/OpenCdsi.VaxEngine.Core/

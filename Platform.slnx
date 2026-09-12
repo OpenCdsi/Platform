@@ -3,7 +3,6 @@
     <Project Path="src/OpenCdsi.VaxEngine.Core/OpenCdsi.VaxEngine.Core.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Contracts/OpenCdsi.VaxEngine.Contracts.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Api/OpenCdsi.VaxEngine.Api.csproj" />
-    <Project Path="src/OpenCdsi.VaxEngine.Functions/OpenCdsi.VaxEngine.Functions.csproj" />
     <Project Path="src/OpenCdsi.VaxEngine.Demo/OpenCdsi.VaxEngine.Demo.csproj" />
     <Project Path="src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj" />
     <Project Path="src/OpenCdsi.ClinicalReference/OpenCdsi.ClinicalReference.csproj" />

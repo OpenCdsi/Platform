@@ -51,7 +51,7 @@ Relevant Patient Series modules. Chapter 6 onward has not been written yet; see 
 | Select Best Patient Series | §8 | ✅ Complete — all of §8.1-8.8 implemented + tested (Pre-Filter, Identify One Prioritized, Classify Scorable, all three point-scoring tables, Select Prioritized, Determine Best) |
 | Vaccine Group Merge | §9 | ✅ Complete — all of §9.1-9.3's business rules implemented + tested, including FORECASTVG-1 (containment), FORECASTVG-8 (recommended antigen), and FORECASTVG-9 (recommended vaccine aggregation) |
 | **End-to-end pipeline** | — | ✅ **Complete** — `GeneratePatientForecast` wires §4.2/§5.1 → §4.4/§6 → §7 → §8 → §9 into one call: raw administered doses in, merged vaccine group forecasts out. See "The pipeline is complete" below |
-| **Evaluation & Forecast APIs** | — | ✅ Both process halves exposed over HTTP, on both the `Cdsi.Api` and `Cdsi.Functions` surfaces: `POST /api/v3/forecast` (§7–§9, what's due next) and `POST /api/v3/evaluate` (§4.4/§6, per-dose Valid/Not Valid/Extraneous grading, collapsed to one row per physical dose) |
+| **Evaluation & Forecast APIs** | — | ✅ Both process halves exposed over HTTP via `Cdsi.Api`: `POST /api/v3/forecast` (§7–§9, what's due next) and `POST /api/v3/evaluate` (§4.4/§6, per-dose Valid/Not Valid/Extraneous grading, collapsed to one row per physical dose) |
 
 ## The orchestrator (§4.4) — what it unlocked, and what's still deferred
 
@@ -224,8 +224,8 @@ check and has caught a real bug every single time so far.
 
 ## Repo layout
 
-This repo is a monorepo covering the engine, its two API surfaces, and the mobile app that
-consumes it. It's organized into several scoped solutions rather than one repo-wide `.sln`,
+This repo is a monorepo covering the engine, its API, and the mobile app that consumes it. It's
+organized into several scoped solutions rather than one repo-wide `.sln`,
 since each has its own release cadence — see the four `.slnx` files at the repo root
 (`Engine.slnx`, `Backend.slnx`, `Mobile.slnx`, `Platform.slnx` for everything at once).
 
@@ -289,16 +289,10 @@ src/OpenCdsi.VaxEngine.Api/
                      `docker compose up --build` from the repo root — see
                      "Cdsi.Api — the dockerized web API" below.
 src/OpenCdsi.VaxEngine.Contracts/
-                     Request/response DTOs and their mapping to/from Core's domain models -
-                     shared between Api and Functions, so both API surfaces produce and consume
-                     identical JSON shapes from one implementation, not two. ForecastRequestDto
-                     is the shared input for both /forecast and /evaluate;
+                     Request/response DTOs and their mapping to/from Core's domain models,
+                     extracted from Api so its DTOs and mapping code live in one place.
+                     ForecastRequestDto is the shared input for both /forecast and /evaluate;
                      EvaluationResponseMapping holds the per-antigen dose-collapse rule.
-src/OpenCdsi.VaxEngine.Functions/
-                     Azure Functions (isolated worker) - the same GeneratePatientForecast call,
-                     as a second API surface. `GenerateForecast` and `Evaluate` functions mirror
-                     Api's two endpoints. See "Cdsi.Functions — Azure Functions as a second
-                     API surface" below, including honest caveats about what's unverified.
 tests/OpenCdsi.VaxEngine.Api.Tests/
                      Real HTTP integration tests via WebApplicationFactory<Program> - the
                      actual Program.cs startup running in-memory against the real data/
@@ -323,7 +317,7 @@ has four `.slnx` files at the root, so an unscoped command is ambiguous and will
 
 ```bash
 dotnet build Engine.slnx    # Core, Contracts, Demo + their tests
-dotnet build Backend.slnx   # Core, Contracts, Api, Functions + Api.Tests
+dotnet build Backend.slnx   # Core, Contracts, Api + Api.Tests
 dotnet build Mobile.slnx    # Core + the MAUI app
 dotnet build Platform.slnx  # everything, for CI or whole-repo work
 dotnet test Engine.slnx     # (etc. - same pattern for test)
@@ -383,8 +377,8 @@ If you're consuming the package from outside this repo, you'll need to fetch tha
 This repo's own [`data/supportingdata`](data/supportingdata) folder is a working example of that
 exact layout — useful as a reference, though per its own `NOTICE` file you should still get the
 current, authoritative copy from CDC rather than relying on a snapshot in this repo. Deploying
-`Cdsi.Api`/`Cdsi.Functions` instead of consuming the library directly? See "The data volume, not
-baked into the image" below — same data, same layout, just mounted into a container.
+`Cdsi.Api` instead of consuming the library directly? See "The data volume, not baked into the
+image" below — same data, same layout, just mounted into a container.
 
 ## Run the whole pipeline yourself
 
@@ -1466,12 +1460,6 @@ EHR integration's first real request.
 tag reachable from `main`, the same guardrails as the NuGet workflow) and then `publish-image`
 (the multi-arch container image → `ghcr.io/opencdsi/platform/vaxengine-api`).
 
-A `deploy-functions` job (`OpenCdsi.VaxEngine.Functions` → Azure Functions) was designed as a
-second, independent job off the same `validate` job, but Azure-side Function App creation hit
-problems and it's on the back burner for now - not wired into the workflow. The design (OIDC
-auth, Flex Consumption constraints, `data/` bundling) is kept below so it doesn't need
-re-deriving when that's picked back up.
-
 The image is built for **`linux/amd64` and `linux/arm64`** (the latter for Apple Silicon and ARM
 servers) and published as a single multi-arch manifest, so `docker pull` picks the right one
 automatically. The root `Dockerfile` cross-compiles the .NET build (`dotnet publish -a
@@ -1506,70 +1494,6 @@ First-image setup: the `publish-image` job uses the built-in `GITHUB_TOKEN` (`pa
 so no PAT is needed, but the package is created private under the org - set its visibility to
 public in the package settings after the first successful run if that's wanted. Same class of
 first-publish friction documented for the NuGet package in `OpenCdsi.VaxEngine.Core.csproj`.
-
-### Deploying Functions to Azure (deferred - not yet wired into the workflow)
-
-**Status: on the back burner.** This section documents the intended design for a
-`deploy-functions` job, worked out before Azure-side Function App creation ran into problems.
-Nothing below is currently active - `release-backend.yml` only runs `publish-image`. Picking this
-back up means resolving the Azure App creation issue first, then re-adding `deploy-functions` as
-a sibling of `publish-image` under the workflow's `validate` job.
-
-The design targets an existing **Flex Consumption** app, which constrains how it works:
-
-- **Auth is OIDC, not a publish profile.** Flex Consumption disables SCM basic-auth publish
-  profiles; deployment goes through the OneDeploy API with a bearer token. `azure/login`
-  exchanges the job's GitHub OIDC token for an Azure one. That token's subject is
-  `repo:opencdsi/platform:environment:azure-prod`, so the job runs in an `azure-prod` GitHub
-  environment and the federated credential on the Azure app registration must match that exact
-  subject.
-- **Reference data ships inside the package.** Flex Consumption has no bring-your-own Azure
-  Files content-share mount (that's Elastic Premium / Dedicated only), so the `deploy-functions`
-  job copies `data/` into the publish output. It lands at `/home/site/wwwroot/data`, and the
-  `CDSI_DATA_PATH` app setting points there. Unlike the container's volume model, **a CDC data
-  update means re-running this workflow**, not an independent file swap.
-- **`.NET 10` isolated on Flex Consumption is new** — see "Azure Functions .NET 10 support"
-  below for the two open upstream issues (`azure-functions-dotnet-worker` #3424, #3351) worth
-  checking against if a deploy succeeds but the worker won't start.
-
-One-time setup (needs an Azure login; the resources themselves already exist):
-
-```bash
-SUBSCRIPTION_ID="..."          # az account show --query id -o tsv
-RESOURCE_GROUP="..."           # RG containing the Function App
-FUNCTION_APP="..."             # the Flex Consumption app name
-REPO="OpenCdsi/Platform"
-APP_NAME="github-opencdsi-platform-deploy"
-
-az account set --subscription "$SUBSCRIPTION_ID"
-
-APP_ID=$(az ad app create --display-name "$APP_NAME" --query appId -o tsv)
-az ad sp create --id "$APP_ID"
-
-az ad app federated-credential create --id "$APP_ID" --parameters "{
-  \"name\": \"github-azure-prod\",
-  \"issuer\": \"https://token.actions.githubusercontent.com\",
-  \"subject\": \"repo:${REPO}:environment:azure-prod\",
-  \"audiences\": [\"api://AzureADTokenExchange\"]
-}"
-
-az role assignment create --assignee "$APP_ID" --role Contributor \
-  --scope "/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP}"
-
-az functionapp config appsettings set --name "$FUNCTION_APP" --resource-group "$RESOURCE_GROUP" \
-  --settings "CDSI_DATA_PATH=/home/site/wwwroot/data"
-
-echo "AZURE_CLIENT_ID       = $APP_ID"
-echo "AZURE_TENANT_ID       = $(az account show --query tenantId -o tsv)"
-echo "AZURE_SUBSCRIPTION_ID = $SUBSCRIPTION_ID"
-```
-
-Then in the repo:
-
-- **Settings → Environments → New environment** named `azure-prod` (no protection rules needed).
-- **Settings → Secrets and variables → Actions**:
-  - Secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` (the three values printed above)
-  - Variable: `AZURE_FUNCTIONAPP_NAME` = the Function App name
 
 ### Package versions, chosen deliberately rather than left to "latest"
 
@@ -1636,181 +1560,15 @@ properties, including the following: dateOfBirth") over the outer exception's mo
 when available - both details visible directly in the failing test's own captured log output,
 not guessed at.
 
-## `Cdsi.Functions` — Azure Functions as a second API surface
-
-The second API surface this project was always heading toward, reusing the exact same forecast
-logic and request/response shapes as `Cdsi.Api` - not a parallel reimplementation.
-
-### A real refactor first: `Cdsi.Contracts`, extracted before anything new was built
-
-Rather than duplicate `ForecastRequestDto`/`ForecastResponseDto`/`RequestMapping`/
-`ResponseMapping`/`InvalidRequestException` into a second project, they were extracted from
-`Cdsi.Api/Contracts/` into a new, small shared project (`Cdsi.Contracts`, referencing only
-`Cdsi.Core`) that both `Cdsi.Api` and `Cdsi.Functions` now depend on. Both API surfaces produce
-and consume identical JSON shapes because they share the literal same mapping code, not because
-two independently-written implementations happen to agree. Confirmed before starting that
-`Cdsi.Api.Tests` doesn't reference the DTO namespace directly (it works over real HTTP/JSON), so
-the extraction only touched `Cdsi.Api` itself - swept the whole repo afterward for any leftover
-`Cdsi.Api.Contracts` reference to confirm nothing was missed.
-
-### Package versions, verified the same way as `Cdsi.Api`'s
-
-This sandbox still can't restore packages or run `dotnet build`, so every version here was
-checked against real, current NuGet listings and a real working example project (not a single
-source) before being written into a `.csproj`:
-
-- **`Microsoft.Azure.Functions.Worker` / `.Worker.Sdk` / `.Worker.Extensions.Http.AspNetCore`,
-  all `2.0.0`** - cross-referenced against Microsoft Learn's own official isolated-worker guide
-  (which recommends the `Http.AspNetCore` extension, version 1.0.0+) and a real, working example
-  project using this exact version across all three packages together. **Superseded**: bumped to
-  `2.52.0`/`2.0.7`/`2.1.1` respectively as part of the net8.0 → net10.0 migration - see
-  "Migrating to .NET 10" below.
-- **`FunctionsApplication.CreateBuilder(args)` + `ConfigureFunctionsWebApplication()`** - the
-  current Microsoft-documented bootstrap pattern (not the older `new HostBuilder()...Build()`
-  style still shown in some third-party blog posts, which still works but is being superseded) -
-  deliberately chosen to mirror `WebApplication.CreateBuilder(args)`'s own shape, the same style
-  already used in `Cdsi.Api`.
-
-### `AuthorizationLevel.Function` — access control that comes free with this surface
-
-Directly relevant to the earlier conversation about adding API key auth to `Cdsi.Api` (held off
-on, pending more thought about how clients will actually use the API): Azure Functions' HTTP
-triggers have built-in key-based access control out of the box.
-`[HttpTrigger(AuthorizationLevel.Function, ...)]` on `GenerateForecast` means every request needs
-a valid function or host key by default - Azure manages issuing and rotating these keys itself,
-no code required. `Health` stays `AuthorizationLevel.Anonymous`, matching `Cdsi.Api`'s own
-unauthenticated `/health` endpoint - a liveness check shouldn't need a key. Worth factoring into
-whatever gets decided for `Cdsi.Api`'s own access control later - the two surfaces don't need
-identical mechanisms, but it's useful context that one of them already has something built in.
-
-### Route parity with `Cdsi.Api`, deliberately
-
-`GenerateForecast` and `Health` resolve to `/api/v1/forecast` and `/health` respectively -
-exactly matching `Cdsi.Api`'s own paths. This took a real correction along the way: Azure
-Functions defaults to an `"api"` route prefix automatically, and an initial draft additionally
-set `routePrefix: "api"` explicitly in `host.json` - redundant with the default, and combined
-with the function-level `Route` attributes, would have produced `/api/health` instead of the
-intended `/health`, breaking parity with `Cdsi.Api`. Fixed by setting `routePrefix: ""` (removing
-the default prefix entirely) and writing each function's own `Route` attribute to spell out the
-full intended path explicitly (`"api/v1/forecast"`, `"health"`) - full, explicit control instead
-of relying on a default that didn't do what was needed here.
-
-The later `Evaluate` function (`EvaluateFunction`, `"api/v1/evaluate"`, also
-`AuthorizationLevel.Function`) follows the same pattern - a separate class from `ForecastFunction`
-rather than a second method on it, mirroring the two distinct halves of the CDSi process
-(evaluate administered doses vs. forecast what's next). It reuses `ForecastRequestDto` verbatim
-and `GeneratePatientForecast.ExecuteWithDoseDetail` (the same call that already backs the
-per-dose conformance detail), mapping through `EvaluationResponseMapping`.
-
-### A deliberate design difference from `Cdsi.Api`, not an oversight
-
-`Cdsi.Api`'s `Program.cs` resolves `ReferenceDataRepository` eagerly at startup, before the app
-starts listening, so a bad data path fails fast with a clear startup error. `Cdsi.Functions`'
-`Program.cs` does not do this - the isolated-worker host's exact startup lifecycle (whether
-resolving a service from `app.Services` before `Run()` behaves identically to
-`WebApplication`'s own) isn't something this sandbox could verify, and getting an unfamiliar
-pattern wrong here risked breaking startup entirely rather than just delaying when an error
-surfaces. Data loads lazily on the first real request instead - flagged directly in the code
-comment so this reads as a deliberate, reasoned choice under real uncertainty, not something
-missed.
-
-### Running it locally
-
-`local.settings.json` (Functions' own local-dev configuration, analogous to `Cdsi.Api`'s
-`launchSettings.json`) is gitignored, since it's a real, if currently placeholder-only, place
-secrets can end up in a genuine deployment - the standard Azure Functions convention. A committed
-`local.settings.json.example` is the template: copy it to `local.settings.json` before running
-locally with Azure Functions Core Tools (`func start` from `src/Cdsi.Functions`). `CDSI_DATA_PATH`
-can be added to its `Values` section to override the same `FindDataDirectory` walk-up default
-`Cdsi.Api` and `Cdsi.Demo` already use.
-
-Without a local `local.settings.json` at all (the gitignored convention above kept as-is), `func
-start` can't determine `FUNCTIONS_WORKER_RUNTIME` and fails with "Worker runtime cannot be
-'None'" - the CLI's own error message suggests passing it explicitly instead:
-`func start --dotnet-isolated`. Not yet confirmed against a real run whether this alone is
-sufficient, or whether `func start` also needs `AzureWebJobsStorage` set (via
-`local.settings.json`, or Azurite running locally) for this project's HTTP-trigger-only setup -
-worth updating this note once that's actually been tried.
-
-### Confirmed end-to-end, against real execution - the same standard as `Cdsi.Api`
-
-Every layer of `Cdsi.Functions` has now actually run, not just been reasoned about.
-
-`func start --dotnet-isolated` starts the host, and both functions register at exactly the
-intended routes - real confirmation that the route-parity fix (clearing Functions' own default
-`"api"` prefix and spelling out each function's full intended path explicitly) works exactly as
-designed:
-
-```
-GenerateForecast: [POST] http://localhost:7071/api/v1/forecast
-Health: [GET] http://localhost:7071/health
-```
-
-The one thing the host itself flagged along the way - `azure.functions.webjobs.storage:
-Unhealthy - Unable to create client for AzureWebJobsStorage` - is a standard, well-known Azure
-Functions requirement, not a bug introduced here: the host uses Azure Storage for its own
-internal bookkeeping even for a purely HTTP-triggered app like this one, and
-`local.settings.json.example`'s `UseDevelopmentStorage=true` placeholder needs a real local
-storage emulator (Azurite: `npm install -g azurite && azurite --silent`) to actually satisfy it.
-Confirmed directly that this does *not* block real HTTP request handling either way.
-
-`GET /health` returned real, correct data-loading counts
-(`{"seriesCount":143,"antigenCount":30,"vaccineGroupCount":26}`) - confirming the one design
-choice that carried genuine uncertainty (lazy data loading on first request, deliberately
-different from `Cdsi.Api`'s own eager startup resolution, since this sandbox couldn't verify the
-isolated-worker host's exact startup lifecycle) genuinely works as intended.
-
-`POST /api/v1/forecast` with a real patient returned a complete, correct forecast across all 15
-real vaccine groups - and remarkably, every real-data pattern this project has discovered over
-its whole history shows up correctly in that one response: Zoster's 50-year gate, HPV's 9-to-11
-year age/recommendation split, Pneumococcal as the one antigen with populated
-`recommendedVaccineCvxCodes`, Rotavirus `AgedOut`, Influenza's seasonal `NotRecommended`, and RSV
-showing the exact "no healthy-toddler pathway, only the 75+ series remains" finding from the
-HepB/RSV investigation many rounds ago - now confirmed again on a different patient age. This
-also settles the last open question about `HttpRequest.ReadFromJsonAsync<T>()` for the success
-path, and `assessmentDate` correctly defaulted to the real current date when omitted from the
-request.
-
-**`Cdsi.Functions` is now confirmed to the same real-execution standard as `Cdsi.Api`, success
-and failure paths alike** - builds clean, starts clean, and produces output identical in
-substance to every other verified surface of this project (`Cdsi.Demo`, `Cdsi.Api`, the
-327-test suite). A request missing `dateOfBirth` returned a clean 400 with the exact, specific
-detail the `JsonException` catch clause was designed to surface -
-`"was missing required properties, including the following: dateOfBirth"` - confirming
-`ReadFromJsonAsync<T>()` does throw `System.Text.Json.JsonException` directly for this case, the
-last genuinely open assumption in this whole section. Nothing about this API surface remains
-unverified.
-
 ## Migrating to .NET 10
 
 Prompted by a real, time-bound fact, not a routine bump: .NET 8 reaches end of support on
 November 10, 2026 (confirmed via web search before touching anything - .NET 8 and .NET 9 both
 retire the same day; .NET 10 is the new LTS, supported through November 2028). The whole
-solution - all seven projects (`Cdsi.Core`, `Cdsi.Contracts`, `Cdsi.Api`, `Cdsi.Functions`,
-`Cdsi.Demo`, and both test projects) - moved from `net8.0` to `net10.0` together, not just
-`Cdsi.Functions`, since every project already targeted the same framework uniformly and letting
-that drift would mean a `net10.0` project referencing `net8.0` ones for no real reason.
-
-### Azure Functions .NET 10 support, checked properly rather than assumed
-
-Confirmed via web search before writing anything: Azure Functions .NET 10 support went GA at
-Ignite 2025, isolated worker model only (matches this project's own architecture already -
-no design change needed), across all hosting plans except Linux Consumption. Package versions
-(`Microsoft.Azure.Functions.Worker` 2.52.0, `.Worker.Extensions.Http.AspNetCore` 2.1.1,
-`.Worker.Sdk` 2.0.7) were each verified against real, current NuGet listings individually, not
-assumed to move together as a single "latest" bump - the original `2.0.0` baseline this project
-started with was too old for confirmed .NET 10 compatibility across the family.
-
-**Worth knowing before you actually deploy, not discovered by surprise later**: this search also
-surfaced two real, currently-open GitHub issues describing .NET 10 isolated-worker deployment
-problems on Azure specifically - not local build failures, but the worker process crashing after
-a successful deploy (`azure-functions-dotnet-worker` issues #3424, a CI-built worker exiting
-immediately on Windows via Azure DevOps while a Visual Studio-published build of the identical
-code works, and #3351, a Flex Consumption deployment failing at startup with `dotnet exited with
-code 150`). Microsoft's own GA announcement doesn't mention either. Neither has been hit by this
-project - `Cdsi.Functions` has only been run locally via `func start`, not actually deployed to
-Azure yet - but they're real, open, and worth checking against before assuming the deployment
-step ahead will be uneventful just because .NET 10 support is officially GA.
+solution - all six projects (`Cdsi.Core`, `Cdsi.Contracts`, `Cdsi.Api`, `Cdsi.Demo`, and both test
+projects) - moved from `net8.0` to `net10.0` together, since every project already targeted the
+same framework uniformly and letting that drift would mean a `net10.0` project referencing
+`net8.0` ones for no real reason.
 
 ### A real compile break this migration would have shipped without checking
 
@@ -1840,13 +1598,11 @@ something to bundle into this change without being asked.
 
 ### Confirmed: the whole solution builds clean on .NET 10, and all 327 tests pass
 
-`dotnet build` from the repo root has been run for real: all eight build outputs across the
-whole solution (`Cdsi.Core`, `Cdsi.Contracts`, `Cdsi.Demo`, `Cdsi.Core.Tests`, `Cdsi.Api`,
-`Cdsi.Api.Tests`, and `Cdsi.Functions`, plus its auto-generated `WorkerExtensions` sub-project)
-succeeded, 0 errors. This confirms the two riskiest changes in this whole migration held up: the
-`Swashbuckle.AspNetCore` 10.2.3 bump and its `Microsoft.OpenApi.OpenApiInfo` namespace fix
-compiled correctly, and the Azure Functions Worker package bumps (`2.52.0`/`2.0.7`/`2.1.1`)
-resolved and built cleanly. Diligence turned into proof.
+`dotnet build` from the repo root has been run for real: all six build outputs across the whole
+solution (`Cdsi.Core`, `Cdsi.Contracts`, `Cdsi.Demo`, `Cdsi.Core.Tests`, `Cdsi.Api`, and
+`Cdsi.Api.Tests`) succeeded, 0 errors. This confirms the riskiest change in this whole migration
+held up: the `Swashbuckle.AspNetCore` 10.2.3 bump and its `Microsoft.OpenApi.OpenApiInfo`
+namespace fix compiled correctly. Diligence turned into proof.
 
 `dotnet test` then confirmed the same: **327 total, 0 failed, 327 succeeded** - the identical
 count from every .NET 8 run before this migration, on `net10.0` this time. The real HTTP
@@ -1858,32 +1614,9 @@ dateOfBirth"` became `"was missing required properties including: 'dateOfBirth'.
 implementation detail, not a regression; this project's exception handling checks status codes,
 not exact framework message text, so it's unaffected either way.
 
-One artifact worth knowing about rather than mistaking for an inconsistency: the build output
-shows `WorkerExtensions net8.0 succeeded` even though `Cdsi.Functions` itself targets `net10.0`.
-This is the Functions SDK's own auto-generated extension-bundle metadata sub-project, managed by
-its tooling independently of the parent project's target framework - the identical artifact
-appeared in earlier `net8.0` builds too. Not something to act on.
-
-`Cdsi.Functions`'s host startup is now reconfirmed too: `func start --dotnet-isolated` on
-`net10.0` produced the identical pattern seen pre-migration - clean build, the same
-`AzureWebJobsStorage` "Unhealthy" warning already known not to block real requests, and both
-functions registering at the exact same real routes:
-
-```
-GenerateForecast: [POST] http://localhost:7071/api/v1/forecast
-Health: [GET] http://localhost:7071/health
-```
-
-**Fully confirmed**: both endpoints hit for real on `net10.0`, with a result stronger than
-"no errors" - the `POST /api/v1/forecast` response for the identical test request is
-*byte-for-byte identical* to the pre-migration `.NET 8` output. Every field matches: RSV's
-"exceeded the maximum age" finding, Zoster's 50-year gate, Pneumococcal as the one antigen with
-populated `recommendedVaccineCvxCodes`, all of it. The .NET 10 migration didn't just avoid
-breaking anything - it reproduced identical behavior for the same input.
-
 **The `.NET 8` → `.NET 10` migration is now fully closed out.** Every piece of this project -
-the core engine, both API surfaces, and the framework migration itself - has been confirmed
-against real execution, success and failure paths alike, with nothing left unverified.
+the core engine, the API, and the framework migration itself - has been confirmed against real
+execution, success and failure paths alike, with nothing left unverified.
 
 ## `Cdsi.Conformance.Tests` - a real, external 1,064-case corpus
 
@@ -1897,7 +1630,7 @@ covering 1,064 real patient scenarios across 17 vaccine groups.
 The corpus needs to check individual administered-dose outcomes (Valid/NotValid per §6), not
 just the merged vaccine-group-level forecast `GeneratePatientForecast.Execute` already returns.
 Rather than change that method's signature (which every existing caller - `Cdsi.Api`,
-`Cdsi.Functions`, `Cdsi.Demo` - depends on), a new `ExecuteWithDoseDetail` method was added
+`Cdsi.Demo` - depends on), a new `ExecuteWithDoseDetail` method was added
 alongside it, returning a `PatientForecastResult` that wraps the existing vaccine-group forecasts
 plus `DoseDetailsByAntigen` (the winning series' own dose-by-dose evaluation detail, per antigen).
 `Execute` itself is unchanged - confirmed by checking every one of its 6 existing call sites
@@ -2174,17 +1907,10 @@ setting, which is the intended behavior working as designed, not a problem.
 
 What remains, roughly in order of what's most valuable next:
 
-1. **`Cdsi.Functions` (Azure Functions) is now built** - see "`Cdsi.Functions` — Azure Functions
-   as a second API surface" above, including the `Cdsi.Contracts` extraction that came with it
-   and a full, honest account of what's genuinely unverified without Azure Functions Core Tools
-   available in this sandbox.
-2. API access control for `Cdsi.Api` - explicitly held off on pending more thought about how
-   clients will actually use the API, per the earlier conversation. `Cdsi.Functions` already has
-   `AuthorizationLevel.Function` key-based access on its forecast endpoint, worth factoring in
-   once this gets revisited.
+1. API access control for `Cdsi.Api` - explicitly held off on pending more thought about how
+   clients will actually use the API, per the earlier conversation.
 
 At this point, every piece of this project - the core engine (all four chapters, all four
-originally-documented gaps), the full 18-series HepB competition, MPL 2.0 licensing, and both API
-surfaces (`Cdsi.Api` and `Cdsi.Functions`, success and failure paths alike) - has been confirmed
-against real execution, not just reasoned about from this sandbox. Nothing built so far remains
-unverified.
+originally-documented gaps), the full 18-series HepB competition, MPL 2.0 licensing, and the API
+(`Cdsi.Api`, success and failure paths alike) - has been confirmed against real execution, not
+just reasoned about from this sandbox. Nothing built so far remains unverified.

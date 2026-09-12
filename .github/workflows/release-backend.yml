@@ -5,12 +5,8 @@
 #
 # It hangs off a shared `validate` job that does the "valid semver + reachable from main"
 # guardrails - the same up-front checks publish-nuget.yml runs before touching the NuGet
-# registry. Kept as a separate job (rather than folded into publish-image) because a
-# deploy-functions job (OpenCdsi.VaxEngine.Functions -> Azure Functions) is on the back burner for
-# now - see the README's "Deploying Functions to Azure" section for the design that was worked
-# out (OIDC auth, Flex Consumption specifics, data/ bundling) before Azure-side app creation ran
-# into problems. Re-add it as a sibling job under `validate` when that's unblocked, rather than
-# re-deriving the design from scratch.
+# registry. Kept as a separate job (rather than folded into publish-image) so a future
+# second release job could hang off it too without duplicating these checks.
 #
 # This repo is a monorepo with independently-tagged solutions (Engine, Backend, Mobile). This
 # workflow only reacts to the backend-v prefix, the same way publish-nuget.yml only reacts to
@@ -36,7 +32,7 @@ on:
 jobs:
   # ---------------------------------------------------------------------------------------------
   # Shared guardrails - kept as its own job (rather than folded into publish-image) so a future
-  # deploy-functions job can hang off it too without duplicating these checks. See the header
+  # second release job can hang off it too without duplicating these checks. See the header
   # comment above.
   # ---------------------------------------------------------------------------------------------
   validate:
