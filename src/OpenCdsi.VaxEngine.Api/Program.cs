@@ -172,6 +172,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v3/swagger.json", "OpenCdsi VaxEngine API v3");
+        // Browser tab title - Swashbuckle defaults this to the generic "Swagger UI" otherwise.
+        options.DocumentTitle = "OpenCdsi VaxEngine API";
         // Custom shell (SwaggerUI/index.html) swaps the OpenCdsi.org logo into the header and
         // relocates Swagger UI's own SmartBear-branded topbar link into a footer - see that
         // file's own header comment for why IndexStream (not InjectStylesheet/InjectJavascript)

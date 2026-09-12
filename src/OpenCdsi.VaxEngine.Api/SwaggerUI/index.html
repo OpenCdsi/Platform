@@ -11,10 +11,16 @@
      (#swagger-ui) - once the node is moved outside that root, clicks bubble past it and the
      link does nothing (no href attribute either, so there's no native fallback). Instead: the
      original is hidden in place via CSS (#opencdsi-footer-link-source below), and the footer
-     link is a plain, static recreation using the same favicon-32x32.png Swagger UI's own
-     default index.html already relies on (see the <link rel="icon"> above) - no dependence on
-     swagger-ui-dist's internal DOM/React structure, so it can't be silently broken by a future
-     Swashbuckle/swagger-ui-dist version bump the way the live-DOM-move approach was. -->
+     link is a plain, static recreation using swagger-ui-dist's own favicon-32x32.png (still
+     served by Swashbuckle's EmbeddedResourceProvider regardless of the page's own favicon
+     below, so this reference is unaffected by that) - no dependence on swagger-ui-dist's
+     internal DOM/React structure, so it can't be silently broken by a future Swashbuckle/
+     swagger-ui-dist version bump the way the live-DOM-move approach was.
+
+     The page's own favicon (browser tab, bookmarks) is opencdsi.org's real favicon.ico
+     (wwwroot/favicon.ico, pulled from https://opencdsi.org/assets/img/favicon.ico) rather
+     than swagger-ui-dist's default - one .ico with multiple embedded sizes covers what the
+     two separate favicon-16x16.png/favicon-32x32.png links did. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,8 +28,7 @@
     <title>%(DocumentTitle)</title>
     <link rel="stylesheet" type="text/css" href="%(StylesPath)">
     <link rel="stylesheet" type="text/css" href="./index.css">
-    <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32" />
-    <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     %(HeadContent)
     <style>
         /* Overlaid onto Swagger UI's own .topbar row instead of sitting in its own row above it,
@@ -170,7 +175,7 @@
     <header id="opencdsi-header">
         <a href="https://opencdsi.org" target="_blank" rel="noopener noreferrer">
             <img src="/opencdsi-logo.svg" alt="OpenCdsi.org logo" />
-            <span>OpenCdsi.org</span>
+            <span>opencdsi.org</span>
         </a>
     </header>
 
