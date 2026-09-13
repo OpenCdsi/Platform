@@ -7,6 +7,15 @@ real-time use in EHR integrations, with the CDC's own reference data (30 antigen
 schedule) treated as external, hot-swappable data rather than compiled into the application, so a
 new CDC data drop is a file swap, not a code change.
 
+**This engine is still under active development and not yet production-ready.** It's checked
+against `Cdsi.Conformance.Tests`, a real external corpus of 1,064 patient scenarios published
+alongside the CDC's own CDSi spec, and currently passes roughly 76% of them (809/1,064). The
+remaining failures are concentrated in a handful of genuinely hard multi-antigen catch-up
+scenarios — see DEVLOG.md's ["`Cdsi.Conformance.Tests` - a real, external 1,064-case
+corpus"](DEVLOG.md#cdsiconformancetests---a-real-external-1064-case-corpus) section for the
+specific cases still open and what's been tried against them. Treat forecasts from this engine as
+a work in progress rather than a finished clinical product until that number is higher.
+
 This repo is a monorepo covering the engine, its HTTP API, and a mobile app built on top of both.
 For the detailed, chapter-by-chapter build history — design decisions, real bugs found, spec
 gotchas — see [DEVLOG.md](DEVLOG.md).
