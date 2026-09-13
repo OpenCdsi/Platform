@@ -9,6 +9,11 @@ same-repo project reference rather than the published NuGet package (see the roo
 to consume Core as a package from outside this monorepo). ("VaxEngine App" is this solution's own
 name; the app's on-device display name is "OpenCdsi Mobile".)
 
+**The forecasts this app shows come from an engine that's still under active development and not
+yet production-ready** — see the [root README](../../README.md) for its current pass rate against
+the CDC's own 1,064-case conformance corpus. Treat this app as a preview of the UI and workflow,
+not a finished clinical tool, until that number is higher.
+
 ## Install
 
 <img src="assets/qr-latest-apk.png" alt="QR code linking to the latest release APK" width="200" />

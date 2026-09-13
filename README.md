@@ -92,8 +92,11 @@ This repo's own [`data/supportingdata`](data/supportingdata) is a working exampl
 ### 3. The mobile app
 
 `src/OpenCdsi.Mobile` is a .NET MAUI app for Android and Windows that consumes the engine
-directly via a project reference. Build releases are tagged `mobile-v*` — see
-[`.github/workflows/build-mobile.yml`](.github/workflows/build-mobile.yml).
+directly via a project reference. Signed installers (the Android APK, both Windows MSIX
+architectures, and the Windows signing certificate) are published on every `mobile-v*` tag to
+this repo's [Releases](https://github.com/OpenCdsi/Platform/releases) page, and are also linked
+from [opencdsi.org](https://opencdsi.org) — see
+[`src/OpenCdsi.Mobile/README.md`](src/OpenCdsi.Mobile/README.md) for install instructions.
 
 ## Build from source
 
