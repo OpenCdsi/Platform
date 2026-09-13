@@ -1,9 +1,12 @@
 # VaxEngine App
 
-Source for **OpenCdsi Mobile**, a patient-facing immunization tracker built
-on top of the [OpenCdsi.VaxEngine](https://github.com/OpenCdsi/VaxEngine)
-CDSi forecasting engine, consumed here as a NuGet package from GitHub Packages
-rather than a project reference. ("VaxEngine App" is this repo/solution's own
+> Part of the [OpenCdsi Platform](../../README.md) monorepo. This README covers only the mobile
+> app; see the root README for the engine, the API, and the published NuGet/Docker artifacts.
+
+Source for **OpenCdsi Mobile**, a patient-facing immunization tracker built on top of the
+[`OpenCdsi.VaxEngine.Core`](../OpenCdsi.VaxEngine.Core) CDSi forecasting engine, consumed here as a
+same-repo project reference rather than the published NuGet package (see the root README for how
+to consume Core as a package from outside this monorepo). ("VaxEngine App" is this solution's own
 name; the app's on-device display name is "OpenCdsi Mobile".)
 
 ## Install
@@ -49,9 +52,9 @@ https://github.com/OpenCdsi/Platform/releases/latest/download/opencdsi-mobile-ar
 
 ## License
 
-Licensed under the Mozilla Public License 2.0 (MPL-2.0) — see the [LICENSE](LICENSE) file for
-the full text and copyright notice. Every `.cs` and `.xaml` file carries the standard MPL 2.0
-file-level notice as its first lines (after the `<?xml ?>` declaration, for XAML):
+Licensed under the Mozilla Public License 2.0 (MPL-2.0) — see the repo root's [LICENSE](../../LICENSE)
+file for the full text and copyright notice. Every `.cs` and `.xaml` file carries the standard
+MPL 2.0 file-level notice as its first lines (after the `<?xml ?>` declaration, for XAML):
 
 ```
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -64,15 +67,15 @@ for `.xaml`) as its first lines, before any `using` statements, namespace declar
 
 **This license covers this project's own source code only.** `Resources/Raw/ReferenceData`
 (the bundled CDC CDSi supporting-data XML) is not authored by this project and is explicitly
-excluded — see that folder's own [`NOTICE`](src/OpenCdsi.Mobile/Resources/Raw/ReferenceData/NOTICE)
-file for its provenance. `Resources/Fonts` (Open Sans, Apache License 2.0) is likewise
-third-party and outside this project's own MPL notice.
+excluded — see that folder's own [`NOTICE`](Resources/Raw/ReferenceData/NOTICE) file for its
+provenance. `Resources/Fonts` (Open Sans, Apache License 2.0) is likewise third-party and outside
+this project's own MPL notice.
 
 ## Structure
 
-```
-src/OpenCdsi.Mobile/   .NET MAUI app (net10.0-android)
-```
+This directory (`src/OpenCdsi.Mobile/`) is the .NET MAUI app (net10.0-android + net10.0-windows).
+It sits alongside `OpenCdsi.VaxEngine.Core` and `OpenCdsi.ClinicalReference` in the same monorepo
+— see the [root README](../../README.md) for the full repo layout.
 
 All MVP screens are built and navigable: patients roster (search, edit,
 delete), add/edit patient, patient detail (immunization history with
@@ -103,20 +106,19 @@ via Visual Studio, VS Code + the MAUI extension, or:
 dotnet workload install maui-android
 ```
 
-Restoring also needs read access to this org's GitHub Packages feed (see
-`nuget.config`) even though the package is public — set:
-
-```
-GITHUB_ACTOR=<your GitHub username>
-GITHUB_TOKEN=<a PAT with read:packages scope>
-```
-
-then:
+`OpenCdsi.VaxEngine.Core` and `OpenCdsi.ClinicalReference` are consumed as project references
+within this monorepo, so no GitHub Packages authentication is needed to restore this app — a
+plain:
 
 ```
 dotnet restore
 dotnet build src/OpenCdsi.Mobile/OpenCdsi.Mobile.csproj -f net10.0-android
 ```
+
+from the repo root is enough. (Building this app from *outside* the monorepo against the
+published NuGet package would need the GitHub Packages credentials described in the root
+README's ["Consuming the published NuGet packages"](../../README.md#2-the-engine-as-a-nuget-package)
+section instead.)
 
 CI builds Android and Windows (x64 + arm64, signed MSIX) on every push/PR touching this app's
 source (or the Engine source it depends on) — see `.github/workflows/build-mobile.yml`.
