@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # full history AND tags needed - both for the "is this tag reachable
                           # from main" check below, and for MinVer to see engine-v* tags at all
@@ -81,7 +81,7 @@ jobs:
           echo "Confirmed: ${GITHUB_REF_NAME} is reachable from main."
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
