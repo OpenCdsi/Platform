@@ -109,6 +109,7 @@ public class ClinicalReferenceRepositoryTests
     [InlineData("Polio", "cVDPV2")]
     [InlineData("Zoster", "immunocompromised")]
     [InlineData("Influenza", "FluMist")]
+    [InlineData("Hib", "Vaxelis")]
     public void Load_ReflectsPostLicensureAmendments_ViaTargetedMmwrCitations(string antigenKey, string expectedNewFact)
     {
         var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);

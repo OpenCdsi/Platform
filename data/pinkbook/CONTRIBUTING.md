@@ -160,9 +160,9 @@ what you actually found:
 
 **Pattern A — amend in place, using a targeted primary source.** This is
 what `pneumococcal.json`, `meningococcal.json`, `meningococcal_b.json`,
-`polio.json`, `zoster.json`, `influenza.json`, and `hepb.json` (its adult
-19-59 recommendation only — see Pattern C for its birth-dose situation) went
-through (Sept 2026). For Pneumococcal specifically, the CDC Pink Book
+`polio.json`, `zoster.json`, `influenza.json`, `hepb.json` (its adult 19-59
+recommendation only — see Pattern C for its birth-dose situation), and
+`hib.json` went through (Sept 2026). For Pneumococcal specifically, the CDC Pink Book
 Web-on-Demand deck turned out to be unreachable (repeated 404s despite search
 engines indexing the URL — CDC's ASP.NET site appears to have reorganized or
 removed some deck paths since RSV's curation), so rather than block on
@@ -180,8 +180,11 @@ poliovirus case in Rockland County, NY) came from MMWR 2023;72:1327-30; the
 2021 RZV-for-immunocompromised-adults recommendation came from MMWR
 2022;71:80-84; FluMist's 2024 self/caregiver-administration approval and
 Flublok's expanded age range came from the 2025-26 seasonal influenza MMWR
-(2025;74:1-30); and the 2022 universal adult (19-59) HepB recommendation
-came from MMWR 2022;71:477-83. In this pattern, only the specific fields and
+(2025;74:1-30); the 2022 universal adult (19-59) HepB recommendation came
+from MMWR 2022;71:477-83; and the September 2024 preferential recommendation
+adding the hexavalent Vaxelis vaccine (alongside monovalent PRP-OMP) for
+American Indian/Alaska Native infants' primary Hib series came from MMWR
+2024;73:799-802. In this pattern, only the specific fields and
 `SupplementalTopics` entries affected by the real change get rewritten — the
 chapter's `source.publishedDate` stays the *original* 14th-edition date
 (these are still fundamentally 2021 chapters), while `source.edition` is
@@ -241,6 +244,22 @@ than re-asking for every new instance of it. Only escalate again if a future
 case doesn't cleanly fit this pattern (e.g., CDC's live page itself becomes
 ambiguous or starts flip-flopping) rather than just being another vote
 awaiting adoption.
+
+**Status as of this update sweep (Sept 2026):** every chapter present as of
+the 14th edition has now been checked against post-2021 ACIP activity, not
+just the ones that turned out to need changes. `diphtheria.json`,
+`pertussis.json`, `tetanus.json`, `hepa.json`, and `rotavirus.json` were
+checked and found to have no material change worth amending — their
+underlying ACIP recommendations have stayed stable. One nuance surfaced for
+the Diphtheria/Pertussis/Tetanus family but was deliberately left alone: a
+2019 ACIP vote (MMWR 2020;69:77-83, predating the 14th edition itself)
+allows Tdap to substitute for Td in situations previously calling for Td
+only (decennial boosters, wound management, catch-up). That's a real gap in
+what the original 2021 curation captured, but it isn't *staleness* — nothing
+changed about it since 2021 — so fixing it is a different kind of task
+(auditing the original curation against its own source) than this sweep's
+target (finding what's changed since). Worth doing at some point, just not
+conflated with Pattern A/B/C amendment work.
 
 To find out which pattern a given chapter needs:
 
