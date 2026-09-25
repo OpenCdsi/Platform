@@ -1,13 +1,19 @@
 NOTICE — Scope of this project's license
 
-The JSON files in this directory are hand-curated summaries of CDC "Pink
-Book" content — the Centers for Disease Control and Prevention's
-"Epidemiology and Prevention of Vaccine-Preventable Diseases," in one of two
-forms CDC itself publishes: most files summarize a chapter of the static
-14th Edition (2021) book; some (currently `rsv.json`) instead summarize a
-chapter from CDC's separately published, more frequently updated "Pink Book
-Web-on-Demand Series" training decks. Both are the CDC's own work, a work of
-the United States federal government.
+The JSON files in this directory are hand-curated summaries of CDC content
+about vaccine-preventable diseases, primarily the "Pink Book" — the Centers
+for Disease Control and Prevention's "Epidemiology and Prevention of
+Vaccine-Preventable Diseases" — in one of two forms CDC itself publishes:
+most files summarize a chapter of the static 14th Edition (2021) book; some
+(currently `rsv.json`) instead summarize a chapter from CDC's separately
+published, more frequently updated "Pink Book Web-on-Demand Series" training
+decks. A few files (currently `mpox.json` and `covid19.json`) cover a
+disease with no Pink Book chapter or Web-on-Demand deck in either form as of
+their curation, and instead summarize CDC's MMWR (Morbidity and Mortality
+Weekly Report) ACIP recommendation reports and current clinical-guidance
+pages directly — see each file's own `source` field and CONTRIBUTING.md for
+exactly what was used. All of this is the CDC's own work, a work of the
+United States federal government.
 
 Unlike data/supportingdata/antigens and data/supportingdata/schedule, these
 files are NOT verbatim CDC data. Each summary was written by a contributor

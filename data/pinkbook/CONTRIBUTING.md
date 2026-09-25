@@ -135,21 +135,53 @@ mostly condensing existing paragraphs.
 
 ## Chapters not yet covered
 
-18 chapters are curated here, covering 19 of the 30 antigens in
+20 chapters are curated here, covering 21 of the 30 antigens in
 `data/supportingdata/antigens/`: the Pink Book 14th edition's 17 static
 chapters (18 antigen keys, since the Meningococcal Disease chapter covers
-both `Meningococcal` and `Meningococcal B`), plus `RSV` from the
-Web-on-Demand Series (see "Two source formats, not one" above). Eleven
-antigens still have no chapter: `COVID-19` and `Orthopoxvirus` (mpox) have
-Web-on-Demand Series sessions per CDC's Education Series listing, but their
-live PDF URLs weren't confirmed as of RSV's curation (unlike RSV/HPV/Pneumo/
-HepB/Varicella, whose `pb_<antigen>` URLs resolve directly — try the same
-pattern, or the JS-rendered training page, before assuming they don't
-exist); `Chikungunya`, `Cholera`, `Dengue`, `Ebola`, `JE`, `Rabies`, `TBE`,
-`Typhoid`, and `YF` are travel vaccines CDC covers in the Yellow Book
-instead, outside Pink Book's scope entirely. `ClinicalReferenceRepository.
-TryGetByAntigen` returns `null` for all eleven by design — that's expected,
-not a bug, per its own doc comment.
+both `Meningococcal` and `Meningococcal B`), plus `RSV`, `Orthopoxvirus`
+(mpox), and `COVID-19` from sources outside the static book (see "Two
+source formats, not one" and "Curating a chapter with no Web-on-Demand deck
+at all" below). Nine antigens still have no chapter: `Chikungunya`,
+`Cholera`, `Dengue`, `Ebola`, `JE`, `Rabies`, `TBE`, `Typhoid`, and `YF` are
+travel vaccines CDC covers in the Yellow Book instead, outside Pink Book's
+scope entirely. `ClinicalReferenceRepository.TryGetByAntigen` returns `null`
+for all nine by design — that's expected, not a bug, per its own doc
+comment.
+
+## Curating a chapter with no Web-on-Demand deck at all
+
+`mpox.json` (antigen key `Orthopoxvirus`) and `covid19.json` (antigen key
+`COVID-19`) were curated (Sept 2026) despite neither having a reachable
+Web-on-Demand Series deck — CDC's live "You Call the Shots" training listing
+(the same page the Web-on-Demand Series URLs redirect to as of this check)
+doesn't include either topic, and guessing at `PB_<Antigen>` URL variants
+(the pattern that worked for RSV) 404s for both. Rather than block on that,
+both were curated the same way Pneumococcal/Meningococcal were amended
+(see Pattern A) — directly from the relevant ACIP MMWR recommendation
+report, plus CDC's current disease-specific clinical/surveillance pages for
+background the vaccine-focused MMWR doesn't cover. Since there's no
+static-book chapter to amend for either (both postdate the 14th edition
+entirely), this is really Pattern B (a wholly new chapter) with a
+Pattern-A-style *source*, not an in-place amendment — `Source.PublishedDate`
+is the real MMWR date, not 2021-08-01, matching RSV's approach. Locked in by
+`Load_ReadsMpoxAndCovidChapters_FromDirectMmwrSources`.
+
+COVID-19 specifically needed a fourth kind of judgment call, beyond Patterns
+A/B/C: not just "does CDC's live page reflect a specific contested vote"
+(Pattern C), but "the underlying recommendation itself is currently subject
+to active, unresolved federal litigation, with the legally operative
+baseline having already changed multiple times in the past year and
+scheduled to potentially change again imminently" (a First Circuit appeal
+was pending, oral argument set for October 6, 2026, as of curation).
+`VaccinationScheduleSummary` follows the specific recommendation that
+litigation left in effect as of this check (shared clinical decision-making
+for most children, universal for adults and immunocompromised children —
+see the chapter's own `Active Litigation` `SupplementalTopic` for the full,
+citation-heavy explanation), but this is a genuinely different confidence
+level than any other chapter here, and the chapter says so prominently and
+repeatedly rather than presenting it as settled. If you're re-checking this
+chapter later, do not assume the litigation has resolved in any particular
+direction — verify directly.
 
 ## Updating for a new Pink Book edition
 

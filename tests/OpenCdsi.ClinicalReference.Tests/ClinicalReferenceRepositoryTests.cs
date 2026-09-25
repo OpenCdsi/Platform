@@ -75,10 +75,12 @@ public class ClinicalReferenceRepositoryTests
 
         // The 17 Pink Book (14th ed.) antigen chapters, 18 antigen keys - the Meningococcal
         // Disease chapter covers two CDSi antigens (Meningococcal and Meningococcal B) in one
-        // chapter, so it's curated as two separate files/keys - plus RSV, curated from a
-        // different source entirely (see Load_ReadsRsvChapter_FromTheWebOnDemandSeriesSource).
-        // Bump this as more chapters are curated.
-        Assert.Equal(19, repo.ChaptersByAntigen.Count);
+        // chapter, so it's curated as two separate files/keys - plus RSV, Mpox, and COVID-19,
+        // each curated from a source outside the static 14th edition book (see
+        // Load_ReadsRsvChapter_FromTheWebOnDemandSeriesSource and
+        // Load_ReadsMpoxAndCovidChapters_FromDirectMmwrSources). Bump this as more chapters are
+        // curated.
+        Assert.Equal(21, repo.ChaptersByAntigen.Count);
     }
 
     [Fact]
@@ -100,6 +102,38 @@ public class ClinicalReferenceRepositoryTests
         Assert.Contains("Web-on-Demand", rsv.Source.Edition);
         Assert.Equal(new DateOnly(2025, 12, 12), rsv.Source.PublishedDate);
         Assert.Contains(rsv.SupplementalTopics, t => t.Title == "Storage and Handling by Product");
+    }
+
+    [Fact]
+    public void Load_ReadsMpoxAndCovidChapters_FromDirectMmwrSources()
+    {
+        var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
+
+        var mpox = repo.TryGetByAntigen("Orthopoxvirus");
+        var covid = repo.TryGetByAntigen("COVID-19");
+
+        Assert.NotNull(mpox);
+        Assert.NotNull(covid);
+        Assert.StartsWith("Monkeypox virus", mpox!.Organism);
+        Assert.StartsWith("Severe acute respiratory syndrome coronavirus 2", covid!.Organism);
+        Assert.NotEmpty(mpox.KeyPoints);
+        Assert.NotEmpty(covid.KeyPoints);
+
+        // Neither Mpox nor COVID-19 has a Pink Book Web-on-Demand Series module as of this
+        // curation (checked against CDC's "You Call the Shots" training listing, which omits
+        // both) or a static 14th-edition chapter (both postdate it), so - like RSV - their
+        // Source.PublishedDate is the real date of the direct MMWR source used instead, not the
+        // 2021 date every static-book chapter in Load_ReadsEveryChapterFile_ForEachCuratedAntigen
+        // asserts.
+        Assert.Equal(new DateOnly(2025, 6, 19), mpox.Source.PublishedDate);
+        Assert.Equal(new DateOnly(2024, 9, 13), covid.Source.PublishedDate);
+
+        // COVID-19 is the one chapter in this library curated under live, unresolved litigation
+        // over the underlying recommendation itself (see its own SupplementalTopic) - a stronger
+        // and more explicit caveat than any Pattern C case, since even the "currently operative"
+        // baseline could change on short notice. This assertion locks in that the caveat exists,
+        // not that any particular schedule detail is "the" answer.
+        Assert.Contains(covid.SupplementalTopics, t => t.Title.Contains("Active Litigation"));
     }
 
     [Theory]
