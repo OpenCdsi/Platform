@@ -159,24 +159,34 @@ different update patterns have come up in practice; pick whichever matches
 what you actually found:
 
 **Pattern A — amend in place, using a targeted primary source.** This is
-what `pneumococcal.json`, `meningococcal.json`, and `meningococcal_b.json`
-went through (Sept 2026): the CDC Pink Book Web-on-Demand deck for
-Pneumococcal turned out to be unreachable (repeated 404s despite search
+what `pneumococcal.json`, `meningococcal.json`, `meningococcal_b.json`,
+`polio.json`, `zoster.json`, `influenza.json`, and `hepb.json` (its adult
+19-59 recommendation only — see Pattern C for its birth-dose situation) went
+through (Sept 2026). For Pneumococcal specifically, the CDC Pink Book
+Web-on-Demand deck turned out to be unreachable (repeated 404s despite search
 engines indexing the URL — CDC's ASP.NET site appears to have reorganized or
 removed some deck paths since RSV's curation), so rather than block on
 finding it, the actual **ACIP MMWR recommendation report** for the specific
 change was used directly instead — a more authoritative primary source than
 a training deck anyway, since the decks themselves summarize these same
-reports. Concretely: PCV15/PCV20/PCV21 and ACIP's October 2024 age-50+
-expansion came from `mmwr_pcv50` (MMWR 2025;74:1-8); GSK's pentavalent
-Penmenvy came from `mmwr_penmenvy` (MMWR 2026;75:6-14); the Bexsero MenB-4C
-schedule change came from the October 2024 MMWR cited inside
-`meningococcal_b.json`'s own `source.edition`. In this pattern, only the
-specific fields and `SupplementalTopics` entries affected by the real change
-get rewritten — the chapter's `source.publishedDate` stays the *original*
-14th-edition date (these are still fundamentally 2021 chapters), while
-`source.edition` is extended to name the amending report(s) inline, so nothing
-false is asserted about a new official edition existing. Locked in by
+reports; every later Pattern A amendment used an MMWR directly from the
+start rather than trying the deck path first. Concretely: PCV15/PCV20/PCV21
+and ACIP's October 2024 age-50+ expansion came from `mmwr_pcv50` (MMWR
+2025;74:1-8); GSK's pentavalent Penmenvy came from `mmwr_penmenvy` (MMWR
+2026;75:6-14); the Bexsero MenB-4C schedule change came from the October
+2024 MMWR cited inside `meningococcal_b.json`'s own `source.edition`; the
+2023 universal-adult IPV recommendation (prompted by a 2022 vaccine-derived
+poliovirus case in Rockland County, NY) came from MMWR 2023;72:1327-30; the
+2021 RZV-for-immunocompromised-adults recommendation came from MMWR
+2022;71:80-84; FluMist's 2024 self/caregiver-administration approval and
+Flublok's expanded age range came from the 2025-26 seasonal influenza MMWR
+(2025;74:1-30); and the 2022 universal adult (19-59) HepB recommendation
+came from MMWR 2022;71:477-83. In this pattern, only the specific fields and
+`SupplementalTopics` entries affected by the real change get rewritten — the
+chapter's `source.publishedDate` stays the *original* 14th-edition date
+(these are still fundamentally 2021 chapters), while `source.edition` is
+extended to name the amending report(s) inline, so nothing false is
+asserted about a new official edition existing. Locked in by
 `Load_ReflectsPostLicensureAmendments_ViaTargetedMmwrCitations`.
 
 **Pattern B — curate a wholesale new source**, the way `rsv.json` was
@@ -201,6 +211,36 @@ schedule) — that's a case to surface to whoever you're working with rather
 than pick a side on your own; there's more than one reasonable way to
 represent contested guidance, and it isn't a technical judgment call the way
 "which field does this content belong in" is.
+
+The same pattern recurred twice more in the same update pass (Sept 2026),
+once the ACIP process itself became visibly contested (committee membership
+and structure were overhauled under new HHS leadership in 2025, producing
+several truncated or reordered meetings): `hepb.json`'s birth dose (a
+December 5, 2025 ACIP vote would delay it to 2 months old for HBsAg-negative
+mothers' infants, reversing a policy in place since 1991 — but the vote
+isn't self-executing, and CDC's published schedule still showed the
+universal birth dose as of this check, so `VaccinationScheduleSummary`
+follows the published schedule, with the vote documented in a
+`SupplementalTopic`; locked in by
+`Load_KeepsPublishedBirthDoseScheduleAsPrimary_WhenAContestedAcipVoteConflictsWithIt`),
+and the MMRV-vs-separate-MMR/varicella schedule shared identically across
+`measles.json`, `mumps.json`, `rubella.json`, and `varicella.json` (September
+18-19, 2025 ACIP votes narrowed MMRV's Vaccines for Children program
+formulary for the first dose — a real, concrete access restriction for about
+half of US children under 4 — but CDC's published schedule notes still used
+the older "preferred separately, may use MMRV if caregivers prefer" language
+rather than a stronger "do not use" framing as of this check, so the
+schedule fields are unchanged and the VFC-specific restriction is documented
+in a `SupplementalTopic` in all four files; locked in by
+`Load_DocumentsMmrvVfcRestriction_WithoutStrengtheningThePublishedPreference`).
+Unlike the original HPV case, these two didn't need a fresh
+`AskUserQuestion` round-trip — the same "follow what CDC actually publishes,
+document the rest" judgment call had already been made once and generalizes
+to any chapter in the same situation, so treat that as the default rather
+than re-asking for every new instance of it. Only escalate again if a future
+case doesn't cleanly fit this pattern (e.g., CDC's live page itself becomes
+ambiguous or starts flip-flopping) rather than just being another vote
+awaiting adoption.
 
 To find out which pattern a given chapter needs:
 

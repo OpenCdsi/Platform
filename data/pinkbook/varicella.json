@@ -15,6 +15,10 @@
   "surveillanceSummary": "Real-time PCR is the preferred laboratory method - most sensitive and specific, results in hours, and able to distinguish vaccine strain from wild-type virus. Skin lesion samples (an unroofed fresh vesicle, or a crust) are the preferred specimen. Commercial IgM assays are not recommended due to poor sensitivity and specificity. Because commercially available IgG assays are not sensitive enough to reliably detect vaccine-induced antibody, routine post-vaccination immunity testing is not recommended. See CDC's Manual for the Surveillance of Vaccine-Preventable Diseases for reporting guidance.",
   "supplementalTopics": [
     {
+      "title": "September 2025 ACIP Votes on MMRV Vaccine Access",
+      "summary": "On September 18-19, 2025, ACIP took two related actions on the first MMRV dose in children 12-47 months. First (8-3, 1 abstention), it voted that MMR and varicella vaccines should generally be given as separate shots for dose 1 - a somewhat stronger framing than this chapter's existing 'generally preferred' language, driven by prelicensure and postlicensure data showing a roughly twofold higher febrile-seizure risk with MMRV versus separate MMR and varicella vaccines at that age. Second (9-0, 3 abstentions), after confusion about the first vote's scope, ACIP specifically removed MMRV from the Vaccines for Children (VFC) program formulary for dose 1 - meaning combined MMRV is no longer available at VFC expense for the roughly half of US children under 4 who are Medicaid-eligible or uninsured, while separate MMR and varicella (VAR) shots remain VFC-covered; privately insured children retain MMRV access through commercial insurance, creating a two-tier system. As of this chapter's most recent check, CDC's own published Child and Adolescent Immunization Schedule notes (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, last reviewed July 2025, before this vote) still use the older 'recommended separately, but MMRV may be used if caregivers express a preference' language reflected in VaccinationScheduleSummary above, not a 'do not use' framing. Anyone making an actual MMRV-vs-separate decision, especially for a VFC-eligible patient, should verify current formulary/coverage status directly rather than relying on this chapter."
+    },
+    {
       "title": "Congenital and Neonatal Varicella",
       "summary": "Congenital varicella syndrome results from maternal infection in the first 20 weeks of gestation (risk under 2%) and can include limb hypoplasia, skin scarring, localized muscular atrophy, encephalitis, cortical atrophy, chorioretinitis, microcephaly, and low birth weight. This is distinct from neonatal varicella: maternal rash onset from 5 days before to 2 days after delivery can cause overwhelming neonatal infection (fatality up to 30% without antivirals) because the newborn is exposed without the benefit of passive maternal antibody; onset more than 5 days before delivery is usually benign because that antibody has had time to transfer."
     },
@@ -34,10 +38,11 @@
     "Since the 1995 vaccination program, US incidence has declined about 97% and hospitalizations/deaths about 93%-94%",
     "Birth in the US before 1980 is accepted evidence of immunity, except for health care personnel, pregnant women, and immunocompromised persons",
     "A vaccinated person can rarely develop zoster from the vaccine strain itself, but at about 79% lower risk than after wild-type infection",
-    "Highly contagious: 61%-100% secondary attack rate among susceptible household contacts"
+    "Highly contagious: 61%-100% secondary attack rate among susceptible household contacts",
+    "A September 2025 ACIP vote further restricted MMRV's Vaccines for Children program coverage for the first dose in children 12-47 months, creating a two-tier system by insurance status - though CDC's own published schedule notes hadn't been updated to a stronger clinical recommendation as of this chapter's last check"
   ],
   "source": {
-    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition - base chapter; VaccinationScheduleSummary confirmed still current against CDC's live Child and Adolescent Immunization Schedule Notes page (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, revised July 2025) as of this check. September 2025 ACIP votes narrowing MMRV's VFC-program coverage are documented in a SupplementalTopic rather than incorporated into VaccinationScheduleSummary, since CDC's published schedule language hadn't strengthened beyond 'preferred' as of that check - see that topic for sourcing.",
     "chapterAuthors": "Adriana Lopez, MHS; Theresa Harrington, MD, MPH&TM; Mona Marin, MD",
     "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/varicella.html",
     "publishedDate": "2021-08-01"

@@ -106,6 +106,9 @@ public class ClinicalReferenceRepositoryTests
     [InlineData("Pneumococcal", "PCV21")]
     [InlineData("Meningococcal", "Penmenvy")]
     [InlineData("Meningococcal B", "Penmenvy")]
+    [InlineData("Polio", "cVDPV2")]
+    [InlineData("Zoster", "immunocompromised")]
+    [InlineData("Influenza", "FluMist")]
     public void Load_ReflectsPostLicensureAmendments_ViaTargetedMmwrCitations(string antigenKey, string expectedNewFact)
     {
         var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
@@ -149,6 +152,50 @@ public class ClinicalReferenceRepositoryTests
         Assert.Contains("2-dose series", hpv!.VaccinationScheduleSummary);
         Assert.DoesNotContain("single dose", hpv.VaccinationScheduleSummary);
         Assert.Contains(hpv.SupplementalTopics, t => t.Title.Contains("Single-Dose Announcement"));
+    }
+
+    [Fact]
+    public void Load_KeepsPublishedBirthDoseScheduleAsPrimary_WhenAContestedAcipVoteConflictsWithIt()
+    {
+        var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
+
+        var hepB = repo.TryGetByAntigen("HepB");
+
+        Assert.NotNull(hepB);
+
+        // Same Pattern C treatment as HPV's single-dose announcement (see
+        // Load_KeepsPublishedScheduleAsPrimary_WhenAContestedAnnouncementConflictsWithIt): a
+        // December 5, 2025 ACIP vote would delay the birth dose for HBsAg-negative mothers'
+        // infants to age 2 months, reversing a universal birth-dose policy in place since 1991 -
+        // but that vote is not self-executing and CDC's own published schedule still showed the
+        // original universal birth-dose recommendation as of this chapter's last check, so
+        // VaccinationScheduleSummary keeps following the published schedule rather than the vote.
+        Assert.Contains("within 24 hours of birth", hepB!.VaccinationScheduleSummary);
+        Assert.Contains(hepB.SupplementalTopics, t => t.Title.Contains("December 2025 ACIP Vote"));
+    }
+
+    [Theory]
+    [InlineData("Measles")]
+    [InlineData("Mumps")]
+    [InlineData("Rubella")]
+    [InlineData("Varicella")]
+    public void Load_DocumentsMmrvVfcRestriction_WithoutStrengtheningThePublishedPreference(string antigenKey)
+    {
+        var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
+
+        var chapter = repo.TryGetByAntigen(antigenKey);
+
+        Assert.NotNull(chapter);
+
+        // September 18-19, 2025 ACIP votes restricted MMRV's Vaccines for Children program
+        // formulary for the first dose in children 12-47 months, affecting all four of the MMRV
+        // component chapters identically. As of each chapter's last check, CDC's own published
+        // schedule notes still used the older "preferred separately, MMRV may be used if
+        // caregivers prefer" language rather than a stronger "do not use" framing, so
+        // VaccinationScheduleSummary is unchanged - the VFC-specific restriction is documented in
+        // a SupplementalTopic instead (see the HPV/HepB Pattern C precedent).
+        Assert.Contains("generally preferred over MMRV", chapter!.VaccinationScheduleSummary);
+        Assert.Contains(chapter.SupplementalTopics, t => t.Title.Contains("MMRV Vaccine Access"));
     }
 
     [Fact]

@@ -14,6 +14,10 @@
   "surveillanceSummary": "Influenza-associated deaths in people under 18 and human infection with a novel influenza A virus are nationally notifiable through NNDSS; other influenza infections are not nationally notifiable but may be reportable in individual states. US influenza surveillance spans five categories - viral, outpatient illness, mortality, hospitalization, and geographic spread - aimed at tracking circulating strains for vaccine formulation, estimating disease burden, detecting outbreaks, and guiding rapid control measures. See CDC's Manual for the Surveillance of Vaccine-Preventable Diseases for general reporting guidance.",
   "supplementalTopics": [
     {
+      "title": "Self- and Caregiver-Administered FluMist (Since the 2025-26 Season)",
+      "summary": "In September 2024, FDA approved FluMist (the LAIV3 nasal-spray vaccine) for self-administration by recipients aged 18-49, or administration by a caregiver aged 18 or older to a child or adolescent aged 2-17 - the first influenza vaccine, and one of the first vaccines of any kind, that doesn't require administration by a health care provider. It became available starting with the 2025-26 season, ordered through a third-party online pharmacy screening/prescribing process rather than in a clinical setting. All of FluMist's existing contraindications, precautions, and age restrictions (see ContraindicationsSummary) still apply regardless of who administers it. Separately, in March 2025, FDA expanded Flublok (RIV3)'s approved age range from 18+ down to 9+, and ACIP's 2025-26 recommendations specify that only single-dose influenza vaccine presentations without thimerosal as a preservative should be used."
+    },
+    {
       "title": "Vaccination During Pregnancy",
       "summary": "Pregnant people face increased risk of severe influenza illness and complications due to pregnancy-related changes in immune, heart, and lung function, and influenza infection has been linked in some studies to preterm delivery and fetal demise. ACIP and ACOG recommend that anyone who is pregnant, might be pregnant, or is up to 2 weeks postpartum during influenza season receive any licensed, age-appropriate IIV or RIV product - vaccination can happen at any point in pregnancy. LAIV is contraindicated during pregnancy."
     },
@@ -29,10 +33,11 @@
     "Vaccine effectiveness against illness is typically 40%-60%, but varies substantially by season depending on how well vaccine strains match circulating strains",
     "Protection lasts under a year, so annual revaccination is needed regardless of prior-season vaccination",
     "LAIV is contraindicated in pregnancy and not preferred for people at high risk of complications - IIV or RIV should be used instead",
-    "Only pediatric influenza deaths and novel influenza A infections are nationally notifiable; most influenza cases are not"
+    "Only pediatric influenza deaths and novel influenza A infections are nationally notifiable; most influenza cases are not",
+    "Since the 2025-26 season, FluMist (the nasal-spray vaccine) can be self-administered by people 18-49 or given by a caregiver 18+ to a child 2-17, without a health care provider - a first for influenza vaccination"
   ],
   "source": {
-    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition - base chapter, amended using CDC MMWR 'Prevention and Control of Seasonal Influenza with Vaccines: Recommendations of the Advisory Committee on Immunization Practices - United States, 2025-26 Influenza Season' (2025;74:1-30) for FluMist self/caregiver-administration and Flublok's expanded age range. As this chapter itself notes, influenza guidance is reissued every season - check CDC's current-season recommendations rather than relying on this or any single year's amendment.",
     "chapterAuthors": "Elisha Hall, PhD, RD",
     "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/flu.html",
     "publishedDate": "2021-08-01"
