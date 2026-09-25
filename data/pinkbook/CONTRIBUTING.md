@@ -45,29 +45,59 @@ doesn't fit an existing field into `SupplementalTopics` first. Only add a
 new first-class field once the same kind of content recurs across two or
 three chapters — a one-off doesn't need a new field.
 
+## Two source formats, not one
+
+Most chapters here (17 of 18) come from the static 14th-edition (Aug 2021)
+Pink Book PDF, which CDC has not meaningfully revised since — its own
+Pneumococcal Disease chapter page even says outright "Vaccine-specific
+recommendations may be outdated." For anything newer, CDC's actual current
+source is the **Pink Book Web-on-Demand Series**
+(`www2.cdc.gov/vaccines/ed/pinkbook/<year>/pb_<antigen>/PB_<Antigen>.pdf`,
+also listed at `cdc.gov/immunization-training/hcp/pink-book-education-series/`)
+— annually refreshed training-deck PDFs, one per chapter topic, that actually
+track ACIP's latest votes. `rsv.json` was curated from that series (no
+static-book RSV chapter exists at all — RSV immunization products postdate
+the 2021 edition). If you're refreshing an *existing* chapter rather than
+adding a new one, check whether its Web-on-Demand deck has diverged from the
+static book before assuming the static PDF is still current — see
+"Updating for a new Pink Book edition" below.
+
+The two formats extract differently: the static book is prose with sidebar
+callout boxes; the Web-on-Demand decks are slide bullets throughout, which
+actually makes `KeyPoints` extraction easier but means the prose summary
+fields need more synthesis (turning bullets into sentences) rather than
+mostly condensing existing paragraphs.
+
 ## Curating one chapter, step by step
 
 1. Extract the PDF's text with layout preserved (poppler's `pdftotext` was
    used here):
 
    ```bash
-   pdftotext -layout "<path to the Pink Book PDF>" full.txt
+   pdftotext -layout "<path to the PDF>" full.txt
    ```
 
-   Do this once per edition; work from the extracted text file, not the PDF
-   directly — grep and sed are far faster on plain text.
+   Do this once per source document; work from the extracted text file, not
+   the PDF directly — grep and sed are far faster on plain text.
 
-2. Find the chapter. Chapter titles repeat as running page headers (e.g.
-   "Diphtheria" printed at the top of every page in that chapter), and each
-   chapter's first page has a byline plus a footer with its canonical CDC
-   URL and revision date — both good grep anchors.
+2. Find the chapter. In the static book, chapter titles repeat as running
+   page headers (e.g. "Diphtheria" printed at the top of every page in that
+   chapter), and each chapter's first page has a byline plus a footer with
+   its canonical CDC URL and revision date — both good grep anchors. A
+   Web-on-Demand deck is already a single chapter's worth of PDF, so this
+   step is a non-issue — just extract and read straight through.
 
-3. Read through the chapter's real section order — Organism → Pathogenesis →
-   Clinical Features → Epidemiology → Secular Trends → Vaccine(s) →
-   Vaccination Schedule and Use → Contraindications and Precautions →
-   Vaccine Safety → Vaccine Storage and Handling → Surveillance and
-   Reporting — noting the sidebar "quick facts" callouts as you go (they're
-   `KeyPoints` candidates).
+3. Read through the chapter's real section order. The static book follows:
+   Organism → Pathogenesis → Clinical Features → Epidemiology → Secular
+   Trends → Vaccine(s) → Vaccination Schedule and Use → Contraindications
+   and Precautions → Vaccine Safety → Vaccine Storage and Handling →
+   Surveillance and Reporting — noting the sidebar "quick facts" callouts as
+   you go (they're `KeyPoints` candidates). A Web-on-Demand deck is
+   organized by numbered sections instead (disease burden → product
+   characteristics → schedule/recommendations → safety → storage →
+   resources) — same underlying content, different order and format, so map
+   each section to the schema field it actually matches rather than assuming
+   the static book's order.
 
 4. Write the JSON file. Match an existing file's structure and tone —
    condensed but specific (real numbers, not vague qualifiers), no marketing
@@ -95,36 +125,55 @@ three chapters — a one-off doesn't need a new field.
    `Load_ReadsChapterCount_MatchingCuratedFiles`'s expected count, and add
    the new antigen to the `Load_ReadsEveryChapterFile_ForEachCuratedAntigen`
    theory (antigen key plus an expected `Organism` prefix is enough to catch
-   a load/parse regression).
+   a load/parse regression). That shared theory also asserts every chapter's
+   `Source.PublishedDate` is the 14th edition's Aug 2021 date — if you're
+   curating from a different source (a Web-on-Demand deck, a later edition),
+   don't force it into that theory; write a dedicated fact instead, the way
+   `Load_ReadsRsvChapter_FromTheWebOnDemandSeriesSource` does, asserting the
+   real source date and edition string instead.
 
-## Chapters this edition doesn't cover
+## Chapters not yet covered
 
-The Pink Book's 14th edition (2021) only covers the 17 antigen chapters
-curated here. Eleven antigens in `data/supportingdata/antigens/` have no
-chapter and never will from this edition, because it predates them or
-they're outside its scope entirely — COVID-19, RSV, and Orthopoxvirus (mpox)
-were added to CDC's
-Pink Book only as later web-only supplements, and Chikungunya, Cholera,
-Dengue, Ebola, JE, Rabies, TBE, Typhoid, and YF are travel vaccines covered
-by CDC's Yellow Book instead. `ClinicalReferenceRepository.TryGetByAntigen`
-returns `null` for all of these by design — that's expected, not a bug, per
-its own doc comment.
+18 chapters are curated here, covering 19 of the 30 antigens in
+`data/supportingdata/antigens/`: the Pink Book 14th edition's 17 static
+chapters (18 antigen keys, since the Meningococcal Disease chapter covers
+both `Meningococcal` and `Meningococcal B`), plus `RSV` from the
+Web-on-Demand Series (see "Two source formats, not one" above). Eleven
+antigens still have no chapter: `COVID-19` and `Orthopoxvirus` (mpox) have
+Web-on-Demand Series sessions per CDC's Education Series listing, but their
+live PDF URLs weren't confirmed as of RSV's curation (unlike RSV/HPV/Pneumo/
+HepB/Varicella, whose `pb_<antigen>` URLs resolve directly — try the same
+pattern, or the JS-rendered training page, before assuming they don't
+exist); `Chikungunya`, `Cholera`, `Dengue`, `Ebola`, `JE`, `Rabies`, `TBE`,
+`Typhoid`, and `YF` are travel vaccines CDC covers in the Yellow Book
+instead, outside Pink Book's scope entirely. `ClinicalReferenceRepository.
+TryGetByAntigen` returns `null` for all eleven by design — that's expected,
+not a bug, per its own doc comment.
 
 ## Updating for a new Pink Book edition
 
 There's no "regenerate" command — refreshing this data means re-running the
-process above against the new edition's text, chapter by chapter:
+process above against whatever's actually current, chapter by chapter:
 
-1. Get the new PDF and re-run step 1 above to produce a fresh `full.txt`.
-2. For each chapter that changed, diff the new prose against the existing
+1. For each existing chapter, check whether its Web-on-Demand deck
+   (`www2.cdc.gov/vaccines/ed/pinkbook/<year>/pb_<antigen>/PB_<Antigen>.pdf`)
+   has diverged from what's curated here — that deck moves faster than the
+   static book and is more likely to reflect a real ACIP change. Confirmed
+   materially different as of RSV's curation (Sept 2026): Pneumococcal (PCV15/
+   PCV20/PCV21 now recommended, plus an October 2024 age-50+ expansion) and
+   Meningococcal (GSK's pentavalent Penmenvy, ACIP-recommended April 2025) —
+   neither is reflected in this project's existing chapters yet.
+2. If CDC publishes an actual new static-book edition, get the new PDF and
+   re-run step 1 under "Curating one chapter" to produce a fresh `full.txt`,
+   then diff each chapter's new prose against the existing
    `data/pinkbook/<antigen>.json` file. Numbers age fastest — secular trend
    stats, safety percentages, dose schedules — so check those first.
 3. Watch for a new subsection that recurs across chapters; that's the signal
    to add another field to `AntigenChapter.cs` rather than stuffing it into
    `SupplementalTopics` chapter by chapter (see "The schema" above).
 4. Update `source.edition` and `source.publishedDate` in every file you
-   touch, and update `chapterAuthors`/`url` too if CDC changed them.
-5. If CDC adds a chapter for an antigen already present in
-   `data/supportingdata/antigens/` (their web-only COVID-19/RSV/mpox
-   chapters, for instance), that's a good time to curate a new file rather
-   than waiting — the antigen key is already known.
+   touch, and update `chapterAuthors`/`url` too if they changed.
+5. If CDC publishes a chapter for an antigen already present in
+   `data/supportingdata/antigens/` (a confirmed COVID-19 or mpox
+   Web-on-Demand deck, for instance), that's a good time to curate a new
+   file rather than waiting — the antigen key is already known.

@@ -72,11 +72,33 @@ public class ClinicalReferenceRepositoryTests
     {
         var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
 
-        // All 17 Pink Book (14th ed.) antigen chapters, 18 antigen keys - the Meningococcal
+        // The 17 Pink Book (14th ed.) antigen chapters, 18 antigen keys - the Meningococcal
         // Disease chapter covers two CDSi antigens (Meningococcal and Meningococcal B) in one
-        // chapter, so it's curated as two separate files/keys. Bump this if a chapter from a
-        // different source (a web-only supplement, a later edition) gets added.
-        Assert.Equal(18, repo.ChaptersByAntigen.Count);
+        // chapter, so it's curated as two separate files/keys - plus RSV, curated from a
+        // different source entirely (see Load_ReadsRsvChapter_FromTheWebOnDemandSeriesSource).
+        // Bump this as more chapters are curated.
+        Assert.Equal(19, repo.ChaptersByAntigen.Count);
+    }
+
+    [Fact]
+    public void Load_ReadsRsvChapter_FromTheWebOnDemandSeriesSource()
+    {
+        var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
+
+        var rsv = repo.TryGetByAntigen("RSV");
+
+        Assert.NotNull(rsv);
+        Assert.StartsWith("Respiratory syncytial virus", rsv!.Organism);
+        Assert.NotEmpty(rsv.KeyPoints);
+
+        // RSV isn't in the 14th edition (Aug 2021) static book at all - the CDC didn't have
+        // maternal/infant/older-adult RSV immunization products yet in 2021. This chapter was
+        // curated from CDC's separately published, more frequently updated "Pink Book
+        // Web-on-Demand Series" instead (see CONTRIBUTING.md), so its source doesn't match the
+        // 2021 date every other chapter in this test file asserts.
+        Assert.Contains("Web-on-Demand", rsv.Source.Edition);
+        Assert.Equal(new DateOnly(2025, 12, 12), rsv.Source.PublishedDate);
+        Assert.Contains(rsv.SupplementalTopics, t => t.Title == "Storage and Handling by Product");
     }
 
     [Fact]
