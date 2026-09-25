@@ -183,6 +183,25 @@ false is asserted about a new official edition existing. Locked in by
 (RSV has no static-book chapter to amend at all). This is the pattern
 described in "Two source formats, not one" above.
 
+**Pattern C — check, but explicitly don't adopt, a contested source.** This
+is what `hpv.json` went through (Sept 2026). A January 2026 HHS announcement
+claimed a move to single-dose HPV vaccination, but the claim didn't survive
+scrutiny as a source: it bypassed ACIP's normal evidence-review vote (which
+had been underway since 2024 but hadn't concluded), and CDC's own live
+Child and Adolescent Immunization Schedule Notes page still showed the
+original 2-dose/3-dose schedule when checked directly. Per an explicit user
+decision (this is a judgment call, not something to resolve unilaterally —
+see below), `VaccinationScheduleSummary` kept following CDC's actually-
+published schedule; the contested announcement was written up in its own
+`SupplementalTopic` instead of silently adopted or silently ignored. Locked
+in by `Load_KeepsPublishedScheduleAsPrimary_WhenAContestedAnnouncementConflictsWithIt`.
+If you hit a source that conflicts with what CDC's own live pages actually
+show — especially for a fact this clinically load-bearing (the dosing
+schedule) — that's a case to surface to whoever you're working with rather
+than pick a side on your own; there's more than one reasonable way to
+represent contested guidance, and it isn't a technical judgment call the way
+"which field does this content belong in" is.
+
 To find out which pattern a given chapter needs:
 
 1. Check whether the chapter's Web-on-Demand deck

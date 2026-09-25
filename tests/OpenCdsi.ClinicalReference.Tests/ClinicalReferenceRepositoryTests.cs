@@ -128,6 +128,30 @@ public class ClinicalReferenceRepositoryTests
     }
 
     [Fact]
+    public void Load_KeepsPublishedScheduleAsPrimary_WhenAContestedAnnouncementConflictsWithIt()
+    {
+        var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
+
+        var hpv = repo.TryGetByAntigen("HPV");
+
+        Assert.NotNull(hpv);
+
+        // A third amendment pattern, distinct from both RSV (wholesale new source) and
+        // Pneumococcal/Meningococcal (amend in place using an accepted ACIP MMWR): in January
+        // 2026 HHS announced a single-dose HPV schedule, but that announcement bypassed ACIP's
+        // normal evidence-review vote, and CDC's own published Child and Adolescent Immunization
+        // Schedule still showed the original 2-dose/3-dose schedule as of this chapter's last
+        // check. Per an explicit user decision, VaccinationScheduleSummary keeps following CDC's
+        // actually-published schedule rather than the disputed announcement - the announcement is
+        // documented in its own SupplementalTopic, not treated as settled fact. A future curator
+        // re-checking this chapter should confirm which schedule CDC is currently publishing
+        // before changing either field.
+        Assert.Contains("2-dose series", hpv!.VaccinationScheduleSummary);
+        Assert.DoesNotContain("single dose", hpv.VaccinationScheduleSummary);
+        Assert.Contains(hpv.SupplementalTopics, t => t.Title.Contains("Single-Dose Announcement"));
+    }
+
+    [Fact]
     public void Load_SplitsMeningococcalChapter_IntoTwoDistinctAntigenKeys()
     {
         var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
