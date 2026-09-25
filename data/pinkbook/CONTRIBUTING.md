@@ -127,8 +127,9 @@ mostly condensing existing paragraphs.
    theory (antigen key plus an expected `Organism` prefix is enough to catch
    a load/parse regression). That shared theory also asserts every chapter's
    `Source.PublishedDate` is the 14th edition's Aug 2021 date — if you're
-   curating from a different source (a Web-on-Demand deck, a later edition),
-   don't force it into that theory; write a dedicated fact instead, the way
+   curating an entirely new chapter from a different source (a Web-on-Demand
+   deck with no static-book counterpart, a later edition), don't force it
+   into that theory; write a dedicated fact instead, the way
    `Load_ReadsRsvChapter_FromTheWebOnDemandSeriesSource` does, asserting the
    real source date and edition string instead.
 
@@ -153,26 +154,58 @@ not a bug, per its own doc comment.
 ## Updating for a new Pink Book edition
 
 There's no "regenerate" command — refreshing this data means re-running the
-process above against whatever's actually current, chapter by chapter:
+process above against whatever's actually current, chapter by chapter. Two
+different update patterns have come up in practice; pick whichever matches
+what you actually found:
 
-1. For each existing chapter, check whether its Web-on-Demand deck
+**Pattern A — amend in place, using a targeted primary source.** This is
+what `pneumococcal.json`, `meningococcal.json`, and `meningococcal_b.json`
+went through (Sept 2026): the CDC Pink Book Web-on-Demand deck for
+Pneumococcal turned out to be unreachable (repeated 404s despite search
+engines indexing the URL — CDC's ASP.NET site appears to have reorganized or
+removed some deck paths since RSV's curation), so rather than block on
+finding it, the actual **ACIP MMWR recommendation report** for the specific
+change was used directly instead — a more authoritative primary source than
+a training deck anyway, since the decks themselves summarize these same
+reports. Concretely: PCV15/PCV20/PCV21 and ACIP's October 2024 age-50+
+expansion came from `mmwr_pcv50` (MMWR 2025;74:1-8); GSK's pentavalent
+Penmenvy came from `mmwr_penmenvy` (MMWR 2026;75:6-14); the Bexsero MenB-4C
+schedule change came from the October 2024 MMWR cited inside
+`meningococcal_b.json`'s own `source.edition`. In this pattern, only the
+specific fields and `SupplementalTopics` entries affected by the real change
+get rewritten — the chapter's `source.publishedDate` stays the *original*
+14th-edition date (these are still fundamentally 2021 chapters), while
+`source.edition` is extended to name the amending report(s) inline, so nothing
+false is asserted about a new official edition existing. Locked in by
+`Load_ReflectsPostLicensureAmendments_ViaTargetedMmwrCitations`.
+
+**Pattern B — curate a wholesale new source**, the way `rsv.json` was
+(RSV has no static-book chapter to amend at all). This is the pattern
+described in "Two source formats, not one" above.
+
+To find out which pattern a given chapter needs:
+
+1. Check whether the chapter's Web-on-Demand deck
    (`www2.cdc.gov/vaccines/ed/pinkbook/<year>/pb_<antigen>/PB_<Antigen>.pdf`)
-   has diverged from what's curated here — that deck moves faster than the
-   static book and is more likely to reflect a real ACIP change. Confirmed
-   materially different as of RSV's curation (Sept 2026): Pneumococcal (PCV15/
-   PCV20/PCV21 now recommended, plus an October 2024 age-50+ expansion) and
-   Meningococcal (GSK's pentavalent Penmenvy, ACIP-recommended April 2025) —
-   neither is reflected in this project's existing chapters yet.
-2. If CDC publishes an actual new static-book edition, get the new PDF and
-   re-run step 1 under "Curating one chapter" to produce a fresh `full.txt`,
-   then diff each chapter's new prose against the existing
-   `data/pinkbook/<antigen>.json` file. Numbers age fastest — secular trend
-   stats, safety percentages, dose schedules — so check those first.
+   is actually reachable and has diverged from what's curated here — try it
+   before assuming Pattern A is needed; it worked cleanly for RSV. If it
+   404s, search for the specific MMWR recommendation report covering the
+   change instead (search `"<topic>" MMWR cdc.gov <year>`, or check
+   `cdc.gov/mmwr/` directly) and use Pattern A.
+2. If CDC publishes an actual new static-book edition (all chapters at
+   once, a new edition number), get the new PDF and re-run step 1 under
+   "Curating one chapter" to produce a fresh `full.txt`, then diff each
+   chapter's new prose against the existing `data/pinkbook/<antigen>.json`
+   file — Pattern B applied across the whole book at once. Numbers age
+   fastest — secular trend stats, safety percentages, dose schedules — so
+   check those first.
 3. Watch for a new subsection that recurs across chapters; that's the signal
    to add another field to `AntigenChapter.cs` rather than stuffing it into
    `SupplementalTopics` chapter by chapter (see "The schema" above).
-4. Update `source.edition` and `source.publishedDate` in every file you
-   touch, and update `chapterAuthors`/`url` too if they changed.
+4. Update `source.edition` (Pattern A: append the amending citation; Pattern
+   B: replace wholesale) and `source.publishedDate` (Pattern A: leave alone;
+   Pattern B: use the new source's real date) in every file you touch, and
+   update `chapterAuthors`/`url` too if they changed.
 5. If CDC publishes a chapter for an antigen already present in
    `data/supportingdata/antigens/` (a confirmed COVID-19 or mpox
    Web-on-Demand deck, for instance), that's a good time to curate a new

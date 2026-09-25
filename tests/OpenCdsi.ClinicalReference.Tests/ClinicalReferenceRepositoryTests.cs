@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+using System.Linq;
 using OpenCdsi.ClinicalReference;
 using Xunit;
 
@@ -99,6 +100,31 @@ public class ClinicalReferenceRepositoryTests
         Assert.Contains("Web-on-Demand", rsv.Source.Edition);
         Assert.Equal(new DateOnly(2025, 12, 12), rsv.Source.PublishedDate);
         Assert.Contains(rsv.SupplementalTopics, t => t.Title == "Storage and Handling by Product");
+    }
+
+    [Theory]
+    [InlineData("Pneumococcal", "PCV21")]
+    [InlineData("Meningococcal", "Penmenvy")]
+    [InlineData("Meningococcal B", "Penmenvy")]
+    public void Load_ReflectsPostLicensureAmendments_ViaTargetedMmwrCitations(string antigenKey, string expectedNewFact)
+    {
+        var repo = ClinicalReferenceRepository.Load(ChaptersDirectory);
+
+        var chapter = repo.TryGetByAntigen(antigenKey);
+
+        Assert.NotNull(chapter);
+
+        // Unlike RSV (an entirely different source - see
+        // Load_ReadsRsvChapter_FromTheWebOnDemandSeriesSource), these three chapters were amended
+        // IN PLACE: the base content is still the 14th edition (Source.PublishedDate stays
+        // 2021-08-01), but specific fields and SupplementalTopics were updated using a targeted,
+        // cited MMWR report covering a real post-2021 ACIP change (PCV15/20/21 and the October
+        // 2024 age-50 expansion for Pneumococcal; GSK's pentavalent Penmenvy for both Meningococcal
+        // chapters). Source.Edition names the amending report(s) rather than claiming a new
+        // official Pink Book edition exists - CDC has not published one.
+        Assert.Equal(new DateOnly(2021, 8, 1), chapter!.Source.PublishedDate);
+        Assert.Contains("amended using CDC MMWR", chapter.Source.Edition);
+        Assert.Contains(expectedNewFact, chapter.VaccineDescription + " " + string.Join(" ", chapter.SupplementalTopics.Select(t => t.Summary)));
     }
 
     [Fact]
