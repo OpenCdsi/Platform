@@ -65,10 +65,10 @@ public class ChapterEndpointTests : IClassFixture<WebApplicationFactory<Program>
         response.EnsureSuccessStatusCode();
         var keys = await response.Content.ReadFromJsonAsync<string[]>();
 
-        // Real data: 18 curated Pink Book chapters as of this writing - matches
+        // Real data: 21 curated Pink Book chapters as of this writing - matches
         // data/pinkbook/*.json, not every one of the 30 antigens /antigens lists (this is
         // deliberately a smaller, different set - see ChapterEndpoints' own doc comment).
-        Assert.Equal(18, keys!.Length);
+        Assert.Equal(21, keys!.Length);
         Assert.Contains("Diphtheria", keys);
         Assert.Equal(keys!.OrderBy(k => k, StringComparer.Ordinal), keys);
     }
