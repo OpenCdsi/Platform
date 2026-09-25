@@ -1,5 +1,6 @@
 # Builds the app for Android and Windows (x64 and arm64) on any push/PR touching this app's own
-# source or the Engine source it depends on, plus any push of a mobile-vX.Y.Z tag - which
+# source, the Engine or ClinicalReference source it depends on, or the data/pinkbook chapters it
+# bundles directly, plus any push of a mobile-vX.Y.Z tag - which
 # additionally publishes every build to a GitHub Release.
 #
 # Android needs the real Android SDK (platform android.jar, build-tools), which .NET's workload
@@ -32,11 +33,15 @@ on:
     paths:
       - 'src/OpenCdsi.Mobile/**'
       - 'src/OpenCdsi.VaxEngine.Core/**'
+      - 'src/OpenCdsi.ClinicalReference/**'
+      - 'data/pinkbook/**'
     tags: ['mobile-v*.*.*']
   pull_request:
     paths:
       - 'src/OpenCdsi.Mobile/**'
       - 'src/OpenCdsi.VaxEngine.Core/**'
+      - 'src/OpenCdsi.ClinicalReference/**'
+      - 'data/pinkbook/**'
   workflow_dispatch:
 
 permissions:

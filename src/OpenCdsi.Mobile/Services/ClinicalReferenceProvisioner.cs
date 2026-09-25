@@ -11,10 +11,14 @@ namespace OpenCdsi.Mobile.Services;
 // real filesystem directory (Directory.EnumerateFiles), but MAUI's bundled Resources/Raw assets are
 // only reachable through the stream-based FileSystem.OpenAppPackageFileAsync, so the bundled Pink
 // Book JSON has to be copied out to a real directory once before the library can load it.
-// manifest.txt (itself a bundled raw asset) lists every file to copy, since asset packages can't be
-// enumerated like a real directory at runtime. Kept as its own provisioner/marker version (rather
-// than folded into ReferenceDataProvisioner) so a Pink Book content refresh doesn't force
-// re-extraction of the unrelated CDC XML reference data, and vice versa.
+// manifest.txt (itself a bundled asset) lists every file to copy, since asset packages can't be
+// enumerated like a real directory at runtime. The chapters come straight from data/pinkbook and
+// the manifest is generated at build time with a SHA-256 per chapter (see the csproj's
+// GenerateClinicalReferenceManifest), so re-extraction is keyed on the manifest text itself: any
+// chapter added, removed or edited changes it, with no version constant to remember to bump.
+// Kept as its own provisioner/marker (rather than folded into ReferenceDataProvisioner) so a Pink
+// Book content refresh doesn't force re-extraction of the unrelated CDC XML reference data, and
+// vice versa.
 //
 // Every await here uses ConfigureAwait(false) for the same reason as ReferenceDataProvisioner -
 // see its own comment. Nothing currently blocks synchronously on ClinicalReferenceStore.LoadAsync
@@ -23,10 +27,6 @@ namespace OpenCdsi.Mobile.Services;
 public static class ClinicalReferenceProvisioner
 {
     private const string AssetRoot = "ClinicalReference";
-
-    // Bump this if the bundled chapter content ever changes, to force re-extraction on next launch
-    // instead of reusing whatever an earlier app version already copied out.
-    private const string ExtractedMarkerVersion = "2";
 
     public static async Task<ClinicalReferenceRepository> LoadAsync(CancellationToken ct = default)
     {
@@ -46,21 +46,28 @@ public static class ClinicalReferenceProvisioner
 
     private static async Task ExtractIfNeededAsync(string destRoot, CancellationToken ct)
     {
-        var markerPath = Path.Combine(destRoot, ".extracted");
-        if (File.Exists(markerPath) &&
-            await File.ReadAllTextAsync(markerPath, ct).ConfigureAwait(false) == ExtractedMarkerVersion)
-            return;
-
-        Directory.CreateDirectory(destRoot);
-
         using var manifestStream =
             await FileSystem.OpenAppPackageFileAsync($"{AssetRoot}/manifest.txt").ConfigureAwait(false);
         using var manifestReader = new StreamReader(manifestStream);
         var manifestText = await manifestReader.ReadToEndAsync(ct).ConfigureAwait(false);
-        var relativePaths = manifestText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-        foreach (var relativePath in relativePaths)
+        // The marker holds the manifest this copy was extracted from - see the class comment.
+        var markerPath = Path.Combine(destRoot, ".extracted");
+        if (File.Exists(markerPath) &&
+            await File.ReadAllTextAsync(markerPath, ct).ConfigureAwait(false) == manifestText)
+            return;
+
+        // Start clean so a chapter dropped from data/pinkbook doesn't linger from an older extraction.
+        if (Directory.Exists(destRoot))
+            Directory.Delete(destRoot, recursive: true);
+        Directory.CreateDirectory(destRoot);
+
+        var lines = manifestText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var line in lines)
         {
+            // sha256sum format: "<hash>  <file>" - the hash is only for change detection.
+            var relativePath = line[(line.IndexOf("  ", StringComparison.Ordinal) + 2)..];
             var destPath = Path.Combine(destRoot, relativePath);
 
             using var source =
@@ -69,6 +76,6 @@ public static class ClinicalReferenceProvisioner
             await source.CopyToAsync(dest, ct).ConfigureAwait(false);
         }
 
-        await File.WriteAllTextAsync(markerPath, ExtractedMarkerVersion, ct).ConfigureAwait(false);
+        await File.WriteAllTextAsync(markerPath, manifestText, ct).ConfigureAwait(false);
     }
 }
