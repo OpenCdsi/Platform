@@ -15,6 +15,10 @@
   "surveillanceSummary": "Laboratory confirmation typically relies on RT-PCR (nasopharyngeal aspirate, throat swab, or urine) and/or measles-specific IgM serology; testing can also distinguish recent vaccine virus from wild-type virus in a potentially exposed, recently vaccinated person. See CDC's Manual for the Surveillance of Vaccine-Preventable Diseases for state/local reporting guidance.",
   "supplementalTopics": [
     {
+      "title": "September 2025 ACIP Votes on MMRV Vaccine Access",
+      "summary": "On September 18-19, 2025, ACIP took two related actions on the first MMRV dose in children 12-47 months. First (8-3, 1 abstention), it voted that MMR and varicella vaccines should generally be given as separate shots for dose 1 - a somewhat stronger framing than this chapter's existing 'generally preferred' language, driven by prelicensure and postlicensure data showing a roughly twofold higher febrile-seizure risk with MMRV versus separate MMR and varicella vaccines at that age. Second (9-0, 3 abstentions), after confusion about the first vote's scope, ACIP specifically removed MMRV from the Vaccines for Children (VFC) program formulary for dose 1 - meaning combined MMRV is no longer available at VFC expense for the roughly half of US children under 4 who are Medicaid-eligible or uninsured, while separate MMR and varicella shots remain VFC-covered; privately insured children retain MMRV access through commercial insurance, creating a two-tier system. As of this chapter's most recent check, CDC's own published Child and Adolescent Immunization Schedule notes (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, last reviewed July 2025, before this vote) still use the older 'recommended separately, but MMRV may be used if caregivers express a preference' language reflected in VaccinationScheduleSummary above, not a 'do not use' framing. Anyone making an actual MMRV-vs-separate decision, especially for a VFC-eligible patient, should verify current formulary/coverage status directly rather than relying on this chapter."
+    },
+    {
       "title": "Vaccination of Adults and Healthcare Personnel",
       "summary": "Adults born in 1957 or later need at least 1 documented MMR dose or other acceptable evidence of immunity. Students entering college or other post-high-school institutions should have 2 documented doses before enrollment. Health care personnel need 2 doses for measles/mumps immunity and 1 dose for rubella immunity - including those born before 1957 - and facilities should offer an additional outbreak-specific dose to personnel during a measles or mumps outbreak (2 doses) or rubella outbreak (1 dose)."
     },
@@ -34,10 +38,11 @@
     "Airborne transmission: infectious droplet nuclei can linger in a closed room for up to 2 hours after an infected person leaves",
     "Contagious from 4 days before through 4 days after rash onset",
     "Birth before 1957 is generally accepted as evidence of immunity, except for health care personnel, who need documented immunity regardless of birth year",
-    "No causal link to autism or inflammatory bowel disease, per multiple studies and a National Academy of Medicine review"
+    "No causal link to autism or inflammatory bowel disease, per multiple studies and a National Academy of Medicine review",
+    "A September 2025 ACIP vote further restricted MMRV's Vaccines for Children program coverage for the first dose in children 12-47 months, creating a two-tier system by insurance status - though CDC's own published schedule notes hadn't been updated to a stronger clinical recommendation as of this chapter's last check"
   ],
   "source": {
-    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition - base chapter; VaccinationScheduleSummary confirmed still current against CDC's live Child and Adolescent Immunization Schedule Notes page (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, revised July 2025) as of this check. September 2025 ACIP votes narrowing MMRV's VFC-program coverage are documented in a SupplementalTopic rather than incorporated into VaccinationScheduleSummary, since CDC's published schedule language hadn't strengthened beyond 'preferred' as of that check - see that topic for sourcing.",
     "chapterAuthors": "Paul Gastanaduy, MD; Penina Haber, MPH; Paul A. Rota, PhD; Manisha Patel, MD, MS",
     "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/meas.html",
     "publishedDate": "2021-08-01"

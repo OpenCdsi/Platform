@@ -15,6 +15,10 @@
   "surveillanceSummary": "Because clinical diagnosis is unreliable, laboratory confirmation relies on PCR detection of rubella virus, a significant IgG rise between acute and convalescent sera, or rubella-specific IgM (optimal collection is at least 5 days after symptom onset; retest if an earlier sample is IgM-negative). Suspected CRS in infants should be evaluated with nasopharyngeal and/or urine testing as close to birth as possible, with monthly viral-shedding screens after age 3 months until two consecutive negative results, since shedding can persist up to a year. See CDC's Manual for the Surveillance of Vaccine-Preventable Diseases for reporting guidance.",
   "supplementalTopics": [
     {
+      "title": "September 2025 ACIP Votes on MMRV Vaccine Access",
+      "summary": "On September 18-19, 2025, ACIP took two related actions on the first MMRV dose in children 12-47 months (this affects rubella only via the combination vaccine - there's no separate rubella-specific angle). First (8-3, 1 abstention), it voted that MMR and varicella vaccines should generally be given as separate shots for dose 1 - a somewhat stronger framing than this chapter's existing 'generally preferred' language, driven by data showing a roughly twofold higher febrile-seizure risk with MMRV versus separate vaccines at that age. Second (9-0, 3 abstentions), ACIP removed MMRV from the Vaccines for Children (VFC) program formulary for dose 1 - meaning combined MMRV is no longer available at VFC expense for the roughly half of US children under 4 who are Medicaid-eligible or uninsured, while separate MMR and varicella shots remain VFC-covered; privately insured children retain MMRV access, creating a two-tier system. As of this chapter's most recent check, CDC's own published Child and Adolescent Immunization Schedule notes (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, last reviewed July 2025, before this vote) still use the older 'preferred separately, but MMRV may be used if caregivers express a preference' language reflected in VaccinationScheduleSummary above. Anyone making an actual MMRV-vs-separate decision, especially for a VFC-eligible patient, should verify current formulary/coverage status directly."
+    },
+    {
       "title": "Congenital Rubella Syndrome (CRS)",
       "summary": "Preventing CRS is the central objective of rubella vaccination programs. Maternal infection is most damaging in early gestation - risk is highest when rubella is acquired in the first 12 weeks - and can cause miscarriage, stillbirth, or birth defects including deafness, eye abnormalities (cataracts, glaucoma, retinopathy, microphthalmia), and congenital heart disease. Infants with CRS can shed large quantities of virus for up to a year and may transmit rubella to susceptible caregivers."
     },
@@ -38,10 +42,11 @@
     "Endemic rubella was declared eliminated in the US in 2004; since 2012 all US cases have been import-associated",
     "Birth before 1957 is NOT acceptable evidence of rubella immunity for women who could become pregnant, unlike the more permissive rule for measles and mumps",
     "Clinical diagnosis of rubella is too unreliable to assess immune status - only laboratory-confirmed serum IgG counts",
-    "Arthralgia after MMR vaccination, tied to the rubella component, affects up to 25% of adult women"
+    "Arthralgia after MMR vaccination, tied to the rubella component, affects up to 25% of adult women",
+    "A September 2025 ACIP vote further restricted MMRV's Vaccines for Children program coverage for the first dose in children 12-47 months, creating a two-tier system by insurance status - though CDC's own published schedule notes hadn't been updated to a stronger clinical recommendation as of this chapter's last check"
   ],
   "source": {
-    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition - base chapter; VaccinationScheduleSummary confirmed still current against CDC's live Child and Adolescent Immunization Schedule Notes page (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, revised July 2025) as of this check. September 2025 ACIP votes narrowing MMRV's VFC-program coverage are documented in a SupplementalTopic rather than incorporated into VaccinationScheduleSummary - see that topic for sourcing.",
     "chapterAuthors": "Tatiana Lanzieri, MD; Penina Haber, MPH; Joseph P. Icenogle, PhD, MS; Manisha Patel, MD, MS",
     "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/rubella.html",
     "publishedDate": "2021-08-01"

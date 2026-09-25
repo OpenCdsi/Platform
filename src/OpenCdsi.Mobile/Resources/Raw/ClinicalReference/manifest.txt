@@ -1,3 +1,4 @@
+covid19.json
 diphtheria.json
 hepa.json
 hepb.json
@@ -7,11 +8,13 @@ influenza.json
 measles.json
 meningococcal.json
 meningococcal_b.json
+mpox.json
 mumps.json
 pertussis.json
 pneumococcal.json
 polio.json
 rotavirus.json
+rsv.json
 rubella.json
 tetanus.json
 varicella.json

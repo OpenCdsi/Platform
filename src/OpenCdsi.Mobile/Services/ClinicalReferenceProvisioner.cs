@@ -26,7 +26,7 @@ public static class ClinicalReferenceProvisioner
 
     // Bump this if the bundled chapter content ever changes, to force re-extraction on next launch
     // instead of reusing whatever an earlier app version already copied out.
-    private const string ExtractedMarkerVersion = "1";
+    private const string ExtractedMarkerVersion = "2";
 
     public static async Task<ClinicalReferenceRepository> LoadAsync(CancellationToken ct = default)
     {

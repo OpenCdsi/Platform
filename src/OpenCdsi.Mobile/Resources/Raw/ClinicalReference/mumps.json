@@ -15,6 +15,10 @@
   "surveillanceSummary": "Confirmation relies on RT-PCR or viral culture from buccal/oral or urine specimens; a negative result does not rule out mumps in someone with compatible symptoms. Serum IgM and IgG seroconversion testing can support a diagnosis but, unlike RT-PCR/culture, cannot confirm one on their own - false negatives are common, especially in previously vaccinated people, since their acute-phase IgG may already be elevated before a convalescent sample can show a rise. See CDC's Manual for the Surveillance of Vaccine-Preventable Diseases for state/local reporting guidance.",
   "supplementalTopics": [
     {
+      "title": "September 2025 ACIP Votes on MMRV Vaccine Access",
+      "summary": "On September 18-19, 2025, ACIP took two related actions on the first MMRV dose in children 12-47 months (this affects mumps only via the combination vaccine - there's no separate mumps-specific angle). First (8-3, 1 abstention), it voted that MMR and varicella vaccines should generally be given as separate shots for dose 1 - a somewhat stronger framing than this chapter's existing 'generally preferred' language, driven by data showing a roughly twofold higher febrile-seizure risk with MMRV versus separate vaccines at that age. Second (9-0, 3 abstentions), ACIP removed MMRV from the Vaccines for Children (VFC) program formulary for dose 1 - meaning combined MMRV is no longer available at VFC expense for the roughly half of US children under 4 who are Medicaid-eligible or uninsured, while separate MMR and varicella shots remain VFC-covered; privately insured children retain MMRV access, creating a two-tier system. As of this chapter's most recent check, CDC's own published Child and Adolescent Immunization Schedule notes (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, last reviewed July 2025, before this vote) still use the older 'preferred separately, but MMRV may be used if caregivers express a preference' language reflected in VaccinationScheduleSummary above. Anyone making an actual MMRV-vs-separate decision, especially for a VFC-eligible patient, should verify current formulary/coverage status directly."
+    },
+    {
       "title": "Vaccination During Mumps Outbreaks (Third Dose)",
       "summary": "During a mumps outbreak, public health authorities may identify specific groups at increased risk and recommend a third MMR dose for everyone in that group without a contraindication - including people without proof of 2 prior doses and those with presumptive evidence of immunity. No additional dose is recommended for people who have already received 3 or more doses before the outbreak."
     },
@@ -33,10 +37,11 @@
     "A successful 2-dose program drove a greater than 99% reduction in reported US mumps cases, but cases have risen again since 2006, mostly among fully vaccinated people in close-contact settings",
     "Close contacts of a mumps patient should not be tested for immunity during an outbreak - a positive IgG titer may indicate acute infection rather than protection",
     "No single-antigen mumps vaccine exists in the US; mumps protection comes only via MMR or MMRV",
-    "Public health authorities can recommend an outbreak-specific third MMR dose for groups at increased risk"
+    "Public health authorities can recommend an outbreak-specific third MMR dose for groups at increased risk",
+    "A September 2025 ACIP vote further restricted MMRV's Vaccines for Children program coverage for the first dose in children 12-47 months, creating a two-tier system by insurance status - though CDC's own published schedule notes hadn't been updated to a stronger clinical recommendation as of this chapter's last check"
   ],
   "source": {
-    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition - base chapter; VaccinationScheduleSummary confirmed still current against CDC's live Child and Adolescent Immunization Schedule Notes page (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, revised July 2025) as of this check. September 2025 ACIP votes narrowing MMRV's VFC-program coverage are documented in a SupplementalTopic rather than incorporated into VaccinationScheduleSummary - see that topic for sourcing.",
     "chapterAuthors": "Mariel Marlow, PhD, MPH; Penina Haber, MPH; Carole Hickman, PhD; Manisha Patel, MD, MS",
     "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/mumps.html",
     "publishedDate": "2021-08-01"

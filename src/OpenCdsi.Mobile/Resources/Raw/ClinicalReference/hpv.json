@@ -14,6 +14,10 @@
   "surveillanceSummary": "HPV infection is NOT a nationally notifiable condition in the US. Cancer burden attributable to HPV is instead tracked through the National Cancer Institute's SEER program and CDC's National Program of Cancer Registries. See CDC's Manual for the Surveillance of Vaccine-Preventable Diseases for general reporting guidance.",
   "supplementalTopics": [
     {
+      "title": "January 2026 Single-Dose Announcement (Not Yet Reflected in CDC's Published Schedule)",
+      "summary": "On January 5, 2026, HHS's Deputy Secretary announced a change to the child/adolescent immunization schedule moving HPV to a single dose, citing studies that one dose is as effective as two - following more than 80 other countries and a 2022 WHO endorsement of single-dose schedules, based on trial evidence including Kenya's KEN-SHE study and a Costa Rica cohort. This did not complete the normal ACIP process: ACIP's own HPV Vaccines Work Group had been formally reviewing single-dose evidence since 2024 and was working toward an Evidence to Recommendations vote, but that vote had not occurred by the time the June 2025 ACIP meeting was shortened and restructured under new HHS leadership - contemporaneous reporting describes the January announcement as departing from, rather than completing, that review. As of this chapter's most recent check, CDC's own published child/adolescent immunization schedule (the 'Notes' page carrying the actual dosing detail, last revised July 2025) still shows the traditional 2-dose/3-dose schedule described in VaccinationScheduleSummary above, with no single-dose option - the two sources disagree, and which one is operative is unresolved. Anyone using this chapter for actual dosing decisions should verify the current schedule directly against CDC's live published pages rather than relying on either position being settled."
+    },
+    {
       "title": "Shared Clinical Decision-Making for Adults 27-45",
       "summary": "Catch-up vaccination is not routinely recommended for anyone over 26, since population-level benefit at that age is minimal - most sexually active adults have already been exposed to some vaccine-covered types, and there's no clinical test to determine which types a given person remains susceptible to. Instead, ACIP recommends individualized shared decision-making for adults 27-45 who aren't adequately vaccinated, weighing factors like a new sex partner (a risk factor for new infection at any age), a long-term mutually monogamous relationship (low new-infection risk), and the fact that vaccine effectiveness may be lower in someone with multiple lifetime partners and likely prior exposure to covered types."
     },
@@ -29,10 +33,11 @@
     "The vaccine is purely prophylactic - it has no therapeutic effect on an HPV infection or disease already present at the time of vaccination",
     "No prevaccination testing (HPV testing, Pap testing, pregnancy testing) is needed or recommended before vaccinating",
     "Vaccinated people still need routine cervical cancer screening, since current vaccines don't cover every cancer-causing HPV type",
-    "HPV infection is not a nationally notifiable condition - burden is tracked through cancer registries instead"
+    "HPV infection is not a nationally notifiable condition - burden is tracked through cancer registries instead",
+    "A January 2026 HHS announcement claims a move to single-dose HPV vaccination, but this did not complete ACIP's normal evidence-review vote, and CDC's own published schedule still shows the older 2-dose/3-dose schedule as of its last revision - the two disagree and neither should be assumed settled without checking CDC's live pages directly"
   ],
   "source": {
-    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition",
+    "edition": "Epidemiology and Prevention of Vaccine-Preventable Diseases (Pink Book), 14th Edition - base chapter; VaccinationScheduleSummary confirmed still current against CDC's live Child and Adolescent Immunization Schedule Notes page (cdc.gov/vaccines/hcp/imz-schedules/child-adolescent-notes.html, revised July 2025) as of this check. A January 2026 HHS announcement of a conflicting single-dose policy is documented in a SupplementalTopic rather than incorporated as the primary schedule, since it has not displaced CDC's own published schedule - see that topic for sourcing.",
     "chapterAuthors": "Elissa Meites, MD, MPH; Julianne Gee, MPH; Elizabeth Unger, PhD, MD; Lauri Markowitz, MD",
     "url": "https://www.cdc.gov/vaccines/pubs/pinkbook/hpv.html",
     "publishedDate": "2021-08-01"
