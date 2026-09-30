@@ -1,10 +1,5 @@
 # OpenCdsi VaxEngine: agent instructions
 
-## Current task: functional-style refactor of the engine (C#)
-Restructure `OpenCdsi.VaxEngine.Core` into explicit pipeline stages built from
-pure functions over immutable data. **Behavior must not change.** This is a
-structural refactor only.
-
 ## Hard rules
 - Work only on the refactor branch/worktree. Never touch main.
 - Baseline first: run the full conformance suite, record the pass count and
