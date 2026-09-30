@@ -59,7 +59,7 @@ public static class ScoreInProcessPatientSeries
 
         // Condition 4 (+2/0/-2): closest to completion (SELECTB-5) - see class doc comment re: strict "<" asymmetry.
         var isClosestToCompletion = allCandidatesInGroup
-            .Where(c => c != candidate)
+            .Where(c => !ReferenceEquals(c, candidate))
             .All(other => candidate.NotSatisfiedTargetDoseCount < other.NotSatisfiedTargetDoseCount);
         if (isClosestToCompletion)
         {
@@ -76,7 +76,7 @@ public static class ScoreInProcessPatientSeries
         // Condition 5 (+1/0/-1): can finish earliest (SELECTB-11) - completable AND finish date <= every other completable series' finish date.
         var completableCandidates = allCandidatesInGroup.Where(c => c.ForecastFinishDate < c.LastTargetDoseMaxAgeDate).ToArray();
         var canFinishEarliest = isCompletable && completableCandidates
-            .Where(c => c != candidate)
+            .Where(c => !ReferenceEquals(c, candidate))
             .All(other => candidate.ForecastFinishDate <= other.ForecastFinishDate);
         if (canFinishEarliest)
         {
