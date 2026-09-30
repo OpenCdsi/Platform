@@ -32,62 +32,78 @@ public sealed record InProcessSeriesCandidate(
 /// </summary>
 public static class ScoreInProcessPatientSeries
 {
-    public static int Execute(InProcessSeriesCandidate candidate, IReadOnlyList<InProcessSeriesCandidate> allCandidatesInGroup)
+    public static int Execute(InProcessSeriesCandidate candidate, IReadOnlyList<InProcessSeriesCandidate> allCandidatesInGroup) =>
+        ProductPathWithAllValidDoses(candidate)
+        + Completable(candidate)
+        + MostValidDoses(candidate, allCandidatesInGroup)
+        + ClosestToCompletion(candidate, allCandidatesInGroup)
+        + CanFinishEarliest(candidate, allCandidatesInGroup);
+
+    // "Other" candidates below are excluded with record VALUE equality (c != candidate), not
+    // reference identity - a value-identical twin is excluded too. Preserved as-is from the
+    // original scoring; changing it would change scores for value-identical candidates.
+
+    private static bool IsCompletable(InProcessSeriesCandidate c) => c.ForecastFinishDate < c.LastTargetDoseMaxAgeDate;
+
+    private static int ValidCount(InProcessSeriesCandidate c) => c.EvaluationStatuses.Count(s => s == EvaluationStatus.Valid);
+
+    /// <summary>Condition 1 (+2/-2): product patient series AND has all valid doses.</summary>
+    private static int ProductPathWithAllValidDoses(InProcessSeriesCandidate candidate)
     {
-        var score = 0;
-
-        // Condition 1 (+2/-2): product patient series AND has all valid doses.
         var hasAllValidDoses = candidate.EvaluationStatuses.Count > 0 && candidate.EvaluationStatuses.All(s => s == EvaluationStatus.Valid);
-        score += candidate.IsProductPath && hasAllValidDoses ? 2 : -2;
+        return candidate.IsProductPath && hasAllValidDoses ? 2 : -2;
+    }
 
-        // Condition 2 (+3/-3): completable (SELECTB-3).
-        var isCompletable = candidate.ForecastFinishDate < candidate.LastTargetDoseMaxAgeDate;
-        score += isCompletable ? 3 : -3;
+    /// <summary>Condition 2 (+3/-3): completable (SELECTB-3).</summary>
+    private static int Completable(InProcessSeriesCandidate candidate) => IsCompletable(candidate) ? 3 : -3;
 
-        // Condition 3 (+2/0/-2): has the most valid doses (reuses §8.4's counting convention via EvaluationStatuses.Count of Valid, but here "most" is tie-aware, unlike conditions 1/2 which have no tie case).
-        var thisValidCount = candidate.EvaluationStatuses.Count(s => s == EvaluationStatus.Valid);
-        var maxValidCount = allCandidatesInGroup.Max(c => c.EvaluationStatuses.Count(s => s == EvaluationStatus.Valid));
-        if (thisValidCount < maxValidCount)
+    /// <summary>
+    /// Condition 3 (+2/0/-2): has the most valid doses (reuses §8.4's counting convention via
+    /// EvaluationStatuses.Count of Valid, but here "most" is tie-aware, unlike conditions 1/2
+    /// which have no tie case).
+    /// </summary>
+    private static int MostValidDoses(InProcessSeriesCandidate candidate, IReadOnlyList<InProcessSeriesCandidate> allCandidatesInGroup)
+    {
+        var maxValidCount = allCandidatesInGroup.Max(ValidCount);
+        if (ValidCount(candidate) < maxValidCount)
         {
-            score -= 2;
-        }
-        else
-        {
-            var tiedAtMax = allCandidatesInGroup.Count(c => c.EvaluationStatuses.Count(s => s == EvaluationStatus.Valid) == maxValidCount);
-            score += tiedAtMax == 1 ? 2 : 0;
+            return -2;
         }
 
-        // Condition 4 (+2/0/-2): closest to completion (SELECTB-5) - see class doc comment re: strict "<" asymmetry.
+        var tiedAtMax = allCandidatesInGroup.Count(c => ValidCount(c) == maxValidCount);
+        return tiedAtMax == 1 ? 2 : 0;
+    }
+
+    /// <summary>Condition 4 (+2/0/-2): closest to completion (SELECTB-5) - see class doc comment re: strict "&lt;" asymmetry.</summary>
+    private static int ClosestToCompletion(InProcessSeriesCandidate candidate, IReadOnlyList<InProcessSeriesCandidate> allCandidatesInGroup)
+    {
         var isClosestToCompletion = allCandidatesInGroup
             .Where(c => c != candidate)
             .All(other => candidate.NotSatisfiedTargetDoseCount < other.NotSatisfiedTargetDoseCount);
         if (isClosestToCompletion)
         {
-            score += 2;
-        }
-        else
-        {
-            var tiedForFewestNotSatisfied = allCandidatesInGroup.Count(c =>
-                c.NotSatisfiedTargetDoseCount == allCandidatesInGroup.Min(x => x.NotSatisfiedTargetDoseCount));
-            var thisIsAtMinimum = candidate.NotSatisfiedTargetDoseCount == allCandidatesInGroup.Min(x => x.NotSatisfiedTargetDoseCount);
-            score += thisIsAtMinimum && tiedForFewestNotSatisfied > 1 ? 0 : -2;
+            return 2;
         }
 
-        // Condition 5 (+1/0/-1): can finish earliest (SELECTB-11) - completable AND finish date <= every other completable series' finish date.
-        var completableCandidates = allCandidatesInGroup.Where(c => c.ForecastFinishDate < c.LastTargetDoseMaxAgeDate).ToArray();
-        var canFinishEarliest = isCompletable && completableCandidates
+        var fewestNotSatisfied = allCandidatesInGroup.Min(x => x.NotSatisfiedTargetDoseCount);
+        var tiedForFewestNotSatisfied = allCandidatesInGroup.Count(c => c.NotSatisfiedTargetDoseCount == fewestNotSatisfied);
+        var thisIsAtMinimum = candidate.NotSatisfiedTargetDoseCount == fewestNotSatisfied;
+        return thisIsAtMinimum && tiedForFewestNotSatisfied > 1 ? 0 : -2;
+    }
+
+    /// <summary>Condition 5 (+1/0/-1): can finish earliest (SELECTB-11) - completable AND finish date &lt;= every other completable series' finish date.</summary>
+    private static int CanFinishEarliest(InProcessSeriesCandidate candidate, IReadOnlyList<InProcessSeriesCandidate> allCandidatesInGroup)
+    {
+        var completableCandidates = allCandidatesInGroup.Where(IsCompletable).ToArray();
+        var canFinishEarliest = IsCompletable(candidate) && completableCandidates
             .Where(c => c != candidate)
             .All(other => candidate.ForecastFinishDate <= other.ForecastFinishDate);
-        if (canFinishEarliest)
+        if (!canFinishEarliest)
         {
-            var tiedEarliest = completableCandidates.Count(c => c.ForecastFinishDate == candidate.ForecastFinishDate);
-            score += tiedEarliest == 1 ? 1 : 0;
-        }
-        else
-        {
-            score -= 1;
+            return -1;
         }
 
-        return score;
+        var tiedEarliest = completableCandidates.Count(c => c.ForecastFinishDate == candidate.ForecastFinishDate);
+        return tiedEarliest == 1 ? 1 : 0;
     }
 }

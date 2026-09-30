@@ -30,43 +30,45 @@ public sealed record NoValidDosesSeriesCandidate(bool IsProductPath, bool IsComp
 /// </summary>
 public static class ScoreNoValidDosesPatientSeries
 {
-    public static int Execute(NoValidDosesSeriesCandidate candidate, IReadOnlyList<NoValidDosesSeriesCandidate> allCandidatesInGroup)
+    public static int Execute(NoValidDosesSeriesCandidate candidate, IReadOnlyList<NoValidDosesSeriesCandidate> allCandidatesInGroup) =>
+        CanStartEarliest(candidate, allCandidatesInGroup)
+        + Completable(candidate)
+        + ProductPath(candidate);
+
+    /// <summary>
+    /// Condition 1 (+1/0/-1): can start earliest (SELECTB-14). Same reconciliation approach as
+    /// §8.5's "closest to completion": SELECTB-14's literal wording is a strict "before" that
+    /// can't be true for two tied series at once, but Table 8-11 has an explicit tied->0 column
+    /// for this condition, so a tie is detected separately rather than inherited as a gap. A
+    /// series with no StartDate at all can't claim "earliest" - scores -1, same as any other
+    /// not-true case.
+    ///
+    /// "Others" are excluded with record VALUE equality (c != candidate), not reference identity,
+    /// so a value-identical twin is excluded too. Preserved as-is from the original scoring.
+    /// </summary>
+    private static int CanStartEarliest(NoValidDosesSeriesCandidate candidate, IReadOnlyList<NoValidDosesSeriesCandidate> allCandidatesInGroup)
     {
-        var score = 0;
-
-        // Condition 1 (+1/0/-1): can start earliest (SELECTB-14). Same reconciliation approach
-        // as §8.5's "closest to completion": SELECTB-14's literal wording is a strict "before"
-        // that can't be true for two tied series at once, but Table 8-11 has an explicit tied->0
-        // column for this condition, so a tie is detected separately rather than inherited as a
-        // gap. A series with no StartDate at all can't claim "earliest" - scores -1, same as any
-        // other not-true case.
-        if (candidate.StartDate is DateOnly thisStart)
+        if (candidate.StartDate is not DateOnly thisStart)
         {
-            var others = allCandidatesInGroup.Where(c => c != candidate && c.StartDate is not null).ToArray();
-            var isUniqueEarliest = others.All(other => thisStart < other.StartDate!.Value);
-            if (isUniqueEarliest)
-            {
-                score += 1;
-            }
-            else
-            {
-                var candidatesWithStartDates = allCandidatesInGroup.Where(c => c.StartDate is not null).ToArray();
-                var earliestStart = candidatesWithStartDates.Min(c => c.StartDate!.Value);
-                var tiedForEarliest = candidatesWithStartDates.Count(c => c.StartDate!.Value == earliestStart);
-                score += thisStart == earliestStart && tiedForEarliest > 1 ? 0 : -1;
-            }
-        }
-        else
-        {
-            score -= 1;
+            return -1;
         }
 
-        // Condition 2 (+1/-1): completable (SELECTB-3) - no tie case (Table 8-11 marks the middle column "n/a").
-        score += candidate.IsCompletable ? 1 : -1;
+        var others = allCandidatesInGroup.Where(c => c != candidate && c.StartDate is not null).ToArray();
+        var isUniqueEarliest = others.All(other => thisStart < other.StartDate!.Value);
+        if (isUniqueEarliest)
+        {
+            return 1;
+        }
 
-        // Condition 3 (-1/+1): product patient series (SELECTB-23) - deliberately inverted sign, see class doc comment.
-        score += candidate.IsProductPath ? -1 : 1;
-
-        return score;
+        var candidatesWithStartDates = allCandidatesInGroup.Where(c => c.StartDate is not null).ToArray();
+        var earliestStart = candidatesWithStartDates.Min(c => c.StartDate!.Value);
+        var tiedForEarliest = candidatesWithStartDates.Count(c => c.StartDate!.Value == earliestStart);
+        return thisStart == earliestStart && tiedForEarliest > 1 ? 0 : -1;
     }
+
+    /// <summary>Condition 2 (+1/-1): completable (SELECTB-3) - no tie case (Table 8-11 marks the middle column "n/a").</summary>
+    private static int Completable(NoValidDosesSeriesCandidate candidate) => candidate.IsCompletable ? 1 : -1;
+
+    /// <summary>Condition 3 (-1/+1): product patient series (SELECTB-23) - deliberately INVERTED sign relative to §8.5, see class doc comment. Do not "fix".</summary>
+    private static int ProductPath(NoValidDosesSeriesCandidate candidate) => candidate.IsProductPath ? -1 : 1;
 }
