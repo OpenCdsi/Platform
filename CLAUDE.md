@@ -1,14 +1,19 @@
 # OpenCdsi VaxEngine: agent instructions
 
 ## Hard rules
-- Work only on the refactor branch/worktree. Never touch main.
-- Baseline first: run the full conformance suite, record the pass count and
-  per-case results before changing anything.
-- One stage at a time. After each, run the conformance and unit tests.
-  Commit only if results match the baseline exactly (zero regressions).
-- If a change alters any result, revert it and report; don't "fix forward".
+- Never commit directly to main. Work on a branch or worktree and merge via PR.
+- Baseline first: before changing engine code, run `scripts/check-baseline.sh`
+  on the unmodified checkout. If it doesn't match, stop and report; the
+  baseline is stale and results can't be trusted.
+- Behavior-preserving changes (refactors, cleanups): work in small steps and
+  commit only when the baseline matches exactly (zero regressions). If a
+  change alters any result, revert it and report; don't "fix forward".
+- Intentional behavior changes (bug fixes, spec corrections): keep them in
+  their own commits and PRs, never mixed with refactoring. Report every case
+  whose result changes, and regenerate the baseline with `--update` in the
+  same commit so the `engine-baseline.tsv` diff shows the change for review.
 - Stop and ask before changing any public signature used by Api, Contracts,
-  Demo, or Mobile.
+  Demo, Mobile, or ClinicalReference.
 
 ## Target style
 - `record` types with `init` properties and `with` expressions; no in-place mutation.
@@ -24,8 +29,9 @@
 - `dotnet test Engine.slnx` includes the conformance corpus.
 - `scripts/check-baseline.sh` runs `Engine.slnx` and diffs every case against
   `tests/baseline/engine-baseline.tsv` (known failures included). This is the
-  per-stage regression gate: commit only when it prints "Matches baseline".
-  Never use `--update` during the refactor unless explicitly told to.
+  regression gate: commit only when it prints "Matches baseline". Use
+  `--update` only for an intentional behavior change (see Hard rules), never
+  to make an unexplained mismatch go away.
 - Api.Tests needs `Platform.slnx` at the repo root to locate `data/`.
 
 ## Conventions
@@ -36,4 +42,4 @@
   sign inversion, the recurring-dose targetIdx trick). Read the relevant
   DEVLOG section before touching a function.
 - CDC data in `data/supportingdata` is external and not ours; never edit it.
-- Keep it simple: no new features or scope creep during the refactor.
+- Keep it simple: no new features or scope creep beyond the task at hand.
