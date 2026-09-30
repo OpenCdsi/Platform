@@ -27,6 +27,9 @@ public sealed class ScheduleSupportingData
     public IReadOnlyDictionary<string, Observation> ObservationsByCode =>
         _observationsByCode ??= Observations.ToDictionary(o => o.ObservationCode, o => o);
 
+    // Memoized pure derivations of immutable data, so callers cannot observe the caching. Kept
+    // lazy on purpose: computing eagerly would move a duplicate-key exception from first access
+    // to load time, which is a behavior change.
     private Dictionary<string, IReadOnlyList<VaccineConflictRule>>? _conflictsByImpactedCvx;
     private Dictionary<string, Observation>? _observationsByCode;
 }

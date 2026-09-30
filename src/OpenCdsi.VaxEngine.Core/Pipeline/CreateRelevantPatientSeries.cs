@@ -30,65 +30,64 @@ public static class CreateRelevantPatientSeries
         IReadOnlyList<AntigenSeries> allSeries,
         DateOnly assessmentDate)
     {
-        var relevant = new List<AntigenSeries>();
-        var unresolved = new List<UnresolvedIndicationNotification>();
-
-        foreach (var series in allSeries)
-        {
-            if (!series.AppliesToGender(patient.Gender))
-            {
-                continue;
-            }
-
-            if (series.SeriesType is SeriesType.Standard or SeriesType.EvaluationOnly)
-            {
-                relevant.Add(series);
-                continue;
-            }
-
-            // Risk series: Table 5-4 per indication, then "at least one applies" for the series.
-            var anyApplies = false;
-            var inconclusive = new List<Indication>();
-
-            foreach (var indication in series.Indications)
-            {
-                var outcome = EvaluateIndication(patient, indication, assessmentDate);
-                if (outcome == IndicationOutcome.Applies)
-                {
-                    anyApplies = true;
-                    break; // Table 5-5: only need one indication to apply
-                }
-                if (outcome == IndicationOutcome.Inconclusive)
-                {
-                    inconclusive.Add(indication);
-                }
-            }
-
-            if (anyApplies)
-            {
-                relevant.Add(series);
-            }
-            else if (inconclusive.Count > 0)
-            {
-                foreach (var indication in inconclusive)
-                {
-                    unresolved.Add(new UnresolvedIndicationNotification
-                    {
-                        SeriesName = series.SeriesName,
-                        Antigen = series.Antigen,
-                        ObservationCode = indication.ObservationCode,
-                        Description = indication.Description
-                    });
-                }
-            }
-            // else: every indication resolved definitively to "No" — series is simply not relevant, no notification.
-        }
+        var decisions = allSeries
+            .Select(series => (Series: series, Relevance: DecideRelevance(patient, series, assessmentDate)))
+            .ToArray();
 
         return new RelevantPatientSeriesResult
         {
-            RelevantSeries = relevant,
-            UnresolvedIndications = unresolved
+            RelevantSeries = decisions.Where(d => d.Relevance.IsRelevant).Select(d => d.Series).ToArray(),
+            UnresolvedIndications = decisions
+                .SelectMany(d => d.Relevance.InconclusiveIndications.Select(indication => new UnresolvedIndicationNotification
+                {
+                    SeriesName = d.Series.SeriesName,
+                    Antigen = d.Series.Antigen,
+                    ObservationCode = indication.ObservationCode,
+                    Description = indication.Description
+                }))
+                .ToArray()
         };
+    }
+
+    /// <summary>
+    /// One series' §5.1 outcome. InconclusiveIndications is non-empty only for a Risk series
+    /// where nothing applied, since those are the only ones surfaced for clinician review.
+    /// </summary>
+    private sealed record SeriesRelevance(bool IsRelevant, IReadOnlyList<Indication> InconclusiveIndications)
+    {
+        public static readonly SeriesRelevance Relevant = new(true, []);
+        public static readonly SeriesRelevance NotRelevant = new(false, []);
+    }
+
+    private static SeriesRelevance DecideRelevance(Patient patient, AntigenSeries series, DateOnly assessmentDate)
+    {
+        if (!series.AppliesToGender(patient.Gender))
+        {
+            return SeriesRelevance.NotRelevant;
+        }
+
+        if (series.SeriesType is SeriesType.Standard or SeriesType.EvaluationOnly)
+        {
+            return SeriesRelevance.Relevant;
+        }
+
+        // Risk series: Table 5-4 per indication, then "at least one applies" for the series.
+        // Lazy on purpose: Any stops at the first applying indication (Table 5-5 only needs one),
+        // so indications after it are never evaluated.
+        var outcomes = series.Indications.Select(indication => (Indication: indication, Outcome: EvaluateIndication(patient, indication, assessmentDate)));
+
+        if (outcomes.Any(o => o.Outcome == IndicationOutcome.Applies))
+        {
+            return SeriesRelevance.Relevant;
+        }
+
+        // Nothing applied, so every indication was evaluated above; re-enumerating the pure
+        // evaluation yields the same outcomes. An empty list means every indication resolved
+        // definitively to "No" - series is simply not relevant, no notification.
+        return new SeriesRelevance(false, outcomes
+            .Where(o => o.Outcome == IndicationOutcome.Inconclusive)
+            .Select(o => o.Indication)
+            .ToArray());
     }
 
     private enum IndicationOutcome { Applies, DoesNotApply, Inconclusive }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+using System.Collections.Immutable;
 using OpenCdsi.VaxEngine.Core.Evaluation;
 using OpenCdsi.VaxEngine.Core.Models;
 using OpenCdsi.VaxEngine.Core.ReferenceData;
@@ -106,97 +107,154 @@ public static class EvaluateSeriesHistory
         DateOnly? assessmentDate = null)
     {
         var targetDoses = series.SeriesDoses.OrderBy(d => d.DoseNumber).ToArray();
-        var evaluatedThisAntigen = new List<EvaluatedAntigenDose>();
-        var targetDoseSatisfiedDates = new Dictionary<int, DateOnly>();
-        var doseResults = new List<DoseEvaluationRecord>();
 
-        var targetIdx = 0;
-        var adminIdx = 0;
+        var walked = WalkTargetDoses(
+            SeriesWalkState.Initial, targetDoses, antigenAdministeredRecords, patient,
+            priorEvaluatedDosesFromOtherAntigens, conflictsByImpactedCvx, resolveCompletedSeries);
 
-        while (targetIdx < targetDoses.Length && adminIdx < antigenAdministeredRecords.Count)
-        {
-            var targetDose = targetDoses[targetIdx];
-            var adminRecord = antigenAdministeredRecords[adminIdx];
+        var settled = MarkRemainingExtraneous(walked, targetDoses, antigenAdministeredRecords);
 
-            var priorAllAntigens = priorEvaluatedDosesFromOtherAntigens.Concat(evaluatedThisAntigen).ToArray();
-
-            var result = EvaluateDoseAgainstTargetDose.Execute(
-                patient, adminRecord.SourceDose, targetDose,
-                evaluatedThisAntigen, priorAllAntigens, targetDoseSatisfiedDates,
-                conflictsByImpactedCvx, resolveCompletedSeries);
-
-            doseResults.Add(new DoseEvaluationRecord(adminRecord, targetDose.DoseNumber, result));
-
-            if (result.TargetDoseStatus == TargetDoseStatus.Satisfied)
-            {
-                evaluatedThisAntigen.Add(new EvaluatedAntigenDose(
-                    adminRecord.Antigen, adminRecord.Cvx, adminRecord.DateAdministered, result.EvaluationStatus, targetDose.DoseNumber));
-                targetDoseSatisfiedDates[targetDose.DoseNumber] = adminRecord.DateAdministered;
-
-                adminIdx++; // step 7 - this record is consumed either way, so advance unconditionally
-
-                // step 5/6: a recurring target dose stays in place (re-evaluated against the
-                // next administered record, using the reference date just updated above) instead
-                // of advancing to a genuinely different target dose - see class doc comment.
-                if (!targetDose.IsRecurringDose)
-                {
-                    targetIdx++;
-                }
-            }
-            else if (result.TargetDoseStatus == TargetDoseStatus.Skipped)
-            {
-                targetIdx++; // INFERENCE - see class doc comment
-                // adminIdx deliberately NOT advanced - record remains for the next target dose.
-            }
-            else // NotSatisfied
-            {
-                evaluatedThisAntigen.Add(new EvaluatedAntigenDose(
-                    adminRecord.Antigen, adminRecord.Cvx, adminRecord.DateAdministered, result.EvaluationStatus, null));
-                adminIdx++; // step 7 - target dose stays the same, try the next administered record
-            }
-        }
-
-        // Step 6a: if the target dose collection is exhausted, any remaining antigen
-        // administered records get evaluation status 'Extraneous', not just left unprocessed.
-        if (targetIdx >= targetDoses.Length)
-        {
-            for (; adminIdx < antigenAdministeredRecords.Count; adminIdx++)
-            {
-                var record = antigenAdministeredRecords[adminIdx];
-                var extraneousResult = TargetDoseEvaluationResult.NotSatisfied(EvaluationStatus.Extraneous, "Series already complete");
-                doseResults.Add(new DoseEvaluationRecord(record, null, extraneousResult));
-                evaluatedThisAntigen.Add(new EvaluatedAntigenDose(record.Antigen, record.Cvx, record.DateAdministered, EvaluationStatus.Extraneous, null));
-            }
-        }
-
-        // Second pass - see class doc comment's "second gap": fast-forward past any remaining
-        // target dose whose Evaluation-context Conditional Skip is satisfied given the patient's
-        // CURRENT age, wherever the main loop above left off (targetIdx 0 for a genuinely
-        // zero-dose patient, or wherever administered records ran out for anyone else). No
-        // DoseEvaluationRecord is added for a fast-forwarded dose - nothing was administered to
-        // record an outcome for; only CurrentTargetDoseNumber below reflects the new position.
-        if (assessmentDate is DateOnly today)
-        {
-            var priorForSkip = evaluatedThisAntigen.Select(EvaluateDoseAgainstTargetDose.MapToPriorDoseForSkipOrConflict).ToArray();
-            while (targetIdx < targetDoses.Length)
-            {
-                var candidateDose = targetDoses[targetIdx];
-                var canSkip = EvaluateConditionalSkip.CanBeSkipped(
-                    patient.DateOfBirth, today, ConditionalSkipContext.Evaluation,
-                    candidateDose.ConditionalSkipInstances, priorForSkip, resolveCompletedSeries);
-                if (!canSkip)
-                {
-                    break;
-                }
-                targetIdx++;
-            }
-        }
+        var positioned = assessmentDate is DateOnly today
+            ? FastForwardSkippable(settled, targetDoses, patient, today, resolveCompletedSeries)
+            : settled;
 
         return new SeriesHistoryResult
         {
-            DoseResults = doseResults,
-            AllEvaluatedDoses = evaluatedThisAntigen,
-            CurrentTargetDoseNumber = targetIdx < targetDoses.Length ? targetDoses[targetIdx].DoseNumber : null
+            DoseResults = positioned.DoseResults,
+            AllEvaluatedDoses = positioned.EvaluatedThisAntigen,
+            CurrentTargetDoseNumber = positioned.TargetIdx < targetDoses.Length ? targetDoses[positioned.TargetIdx].DoseNumber : null
         };
+    }
+
+    /// <summary>
+    /// Everything §4.4's two-pointer walk carries between steps. Immutable so each step's
+    /// inputs to EvaluateDoseAgainstTargetDose are a snapshot, never a collection a later step
+    /// could change underneath it.
+    /// </summary>
+    private sealed record SeriesWalkState(
+        int TargetIdx,
+        int AdminIdx,
+        ImmutableList<EvaluatedAntigenDose> EvaluatedThisAntigen,
+        ImmutableDictionary<int, DateOnly> TargetDoseSatisfiedDates,
+        ImmutableList<DoseEvaluationRecord> DoseResults)
+    {
+        public static readonly SeriesWalkState Initial = new(0, 0, [], ImmutableDictionary<int, DateOnly>.Empty, []);
+    }
+
+    /// <summary>§4.4 steps 1-7: iterate WalkStep until either pointer runs off its collection.</summary>
+    private static SeriesWalkState WalkTargetDoses(
+        SeriesWalkState state,
+        SeriesDose[] targetDoses,
+        IReadOnlyList<AntigenAdministered> records,
+        Patient patient,
+        IReadOnlyList<EvaluatedAntigenDose> priorEvaluatedDosesFromOtherAntigens,
+        IReadOnlyDictionary<string, IReadOnlyList<VaccineConflictRule>> conflictsByImpactedCvx,
+        Func<string?, bool> resolveCompletedSeries)
+    {
+        // A loop over immutable states rather than recursion: C# has no guaranteed tail calls,
+        // and the step count grows with dose history length.
+        while (state.TargetIdx < targetDoses.Length && state.AdminIdx < records.Count)
+        {
+            state = WalkStep(state, targetDoses[state.TargetIdx], records[state.AdminIdx], patient,
+                priorEvaluatedDosesFromOtherAntigens, conflictsByImpactedCvx, resolveCompletedSeries);
+        }
+
+        return state;
+    }
+
+    private static SeriesWalkState WalkStep(
+        SeriesWalkState state,
+        SeriesDose targetDose,
+        AntigenAdministered adminRecord,
+        Patient patient,
+        IReadOnlyList<EvaluatedAntigenDose> priorEvaluatedDosesFromOtherAntigens,
+        IReadOnlyDictionary<string, IReadOnlyList<VaccineConflictRule>> conflictsByImpactedCvx,
+        Func<string?, bool> resolveCompletedSeries)
+    {
+        var priorAllAntigens = priorEvaluatedDosesFromOtherAntigens.Concat(state.EvaluatedThisAntigen).ToArray();
+
+        var result = EvaluateDoseAgainstTargetDose.Execute(
+            patient, adminRecord.SourceDose, targetDose,
+            state.EvaluatedThisAntigen, priorAllAntigens, state.TargetDoseSatisfiedDates,
+            conflictsByImpactedCvx, resolveCompletedSeries);
+
+        var recorded = state with
+        {
+            DoseResults = state.DoseResults.Add(new DoseEvaluationRecord(adminRecord, targetDose.DoseNumber, result))
+        };
+
+        return result.TargetDoseStatus switch
+        {
+            TargetDoseStatus.Satisfied => recorded with
+            {
+                EvaluatedThisAntigen = recorded.EvaluatedThisAntigen.Add(new EvaluatedAntigenDose(
+                    adminRecord.Antigen, adminRecord.Cvx, adminRecord.DateAdministered, result.EvaluationStatus, targetDose.DoseNumber)),
+                // SetItem overwrites, so a recurring dose's reference date re-anchors to its latest occurrence.
+                TargetDoseSatisfiedDates = recorded.TargetDoseSatisfiedDates.SetItem(targetDose.DoseNumber, adminRecord.DateAdministered),
+                AdminIdx = recorded.AdminIdx + 1, // step 7 - this record is consumed either way
+                // step 5/6: a recurring target dose stays in place (re-evaluated against the next
+                // administered record, using the reference date just updated above) instead of
+                // advancing to a genuinely different target dose - see class doc comment.
+                TargetIdx = targetDose.IsRecurringDose ? recorded.TargetIdx : recorded.TargetIdx + 1,
+            },
+            // INFERENCE - see class doc comment. AdminIdx deliberately NOT advanced - the record
+            // remains for the next target dose.
+            TargetDoseStatus.Skipped => recorded with { TargetIdx = recorded.TargetIdx + 1 },
+            // NotSatisfied: step 7 - target dose stays the same, try the next administered record.
+            _ => recorded with
+            {
+                EvaluatedThisAntigen = recorded.EvaluatedThisAntigen.Add(new EvaluatedAntigenDose(
+                    adminRecord.Antigen, adminRecord.Cvx, adminRecord.DateAdministered, result.EvaluationStatus, null)),
+                AdminIdx = recorded.AdminIdx + 1,
+            },
+        };
+    }
+
+    /// <summary>
+    /// Step 6a: if the target dose collection is exhausted, any remaining antigen administered
+    /// records get evaluation status 'Extraneous', not just left unprocessed.
+    /// </summary>
+    private static SeriesWalkState MarkRemainingExtraneous(
+        SeriesWalkState state, SeriesDose[] targetDoses, IReadOnlyList<AntigenAdministered> records)
+    {
+        if (state.TargetIdx < targetDoses.Length)
+        {
+            return state;
+        }
+
+        var remaining = records.Skip(state.AdminIdx).ToArray();
+        var extraneousResult = TargetDoseEvaluationResult.NotSatisfied(EvaluationStatus.Extraneous, "Series already complete");
+
+        return state with
+        {
+            DoseResults = state.DoseResults.AddRange(
+                remaining.Select(r => new DoseEvaluationRecord(r, null, extraneousResult))),
+            EvaluatedThisAntigen = state.EvaluatedThisAntigen.AddRange(
+                remaining.Select(r => new EvaluatedAntigenDose(r.Antigen, r.Cvx, r.DateAdministered, EvaluationStatus.Extraneous, null))),
+            AdminIdx = records.Count,
+        };
+    }
+
+    /// <summary>
+    /// Second pass - see class doc comment's "second gap": fast-forward past any remaining target
+    /// dose whose Evaluation-context Conditional Skip is satisfied given the patient's CURRENT
+    /// age, wherever the walk left off (TargetIdx 0 for a genuinely zero-dose patient, or
+    /// wherever administered records ran out for anyone else). No DoseEvaluationRecord is added
+    /// for a fast-forwarded dose - nothing was administered to record an outcome for; only
+    /// CurrentTargetDoseNumber reflects the new position.
+    /// </summary>
+    private static SeriesWalkState FastForwardSkippable(
+        SeriesWalkState state, SeriesDose[] targetDoses, Patient patient, DateOnly today, Func<string?, bool> resolveCompletedSeries)
+    {
+        var priorForSkip = state.EvaluatedThisAntigen.Select(EvaluateDoseAgainstTargetDose.MapToPriorDoseForSkipOrConflict).ToArray();
+
+        var skippable = targetDoses
+            .Skip(state.TargetIdx)
+            .TakeWhile(candidateDose => EvaluateConditionalSkip.CanBeSkipped(
+                patient.DateOfBirth, today, ConditionalSkipContext.Evaluation,
+                candidateDose.ConditionalSkipInstances, priorForSkip, resolveCompletedSeries))
+            .Count();
+
+        return state with { TargetIdx = state.TargetIdx + skippable };
     }
 }

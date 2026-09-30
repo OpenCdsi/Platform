@@ -10,17 +10,25 @@ namespace OpenCdsi.VaxEngine.Core.ReferenceData;
 /// <summary>Loads one AntigenSupportingData-*.xml file into its list of AntigenSeries. Only the fields needed by §4.2/§5.1 (and the Age/Interval fields modeled for the upcoming §6.4-6.6 work) are parsed — contraindications, immunity evidence, and vaccine preference lists are not yet modeled.</summary>
 public static class AntigenSupportingDataLoader
 {
-    public static IReadOnlyList<AntigenSeries> LoadFile(string path)
+    // The public Load* methods are the I/O edge: each reads the file, then hands a plain
+    // XElement to a pure Parse* function. Their signatures are used by Api, Demo, Mobile and
+    // ClinicalReference, so they stay; ReferenceDataRepository uses LoadRoot + Parse* directly
+    // to read each file once instead of three times.
+
+    public static IReadOnlyList<AntigenSeries> LoadFile(string path) => ParseSeriesList(LoadRoot(path), path);
+
+    public static AntigenImmunityData LoadImmunityData(string path) => ParseImmunityData(LoadRoot(path));
+
+    public static AntigenContraindicationData LoadContraindicationData(string path) => ParseContraindicationData(LoadRoot(path));
+
+    internal static XElement LoadRoot(string path)
     {
         var doc = XDocument.Load(path);
-        var root = doc.Root ?? throw new InvalidOperationException($"'{path}' has no root element.");
-        return ParseSeriesList(root, path);
+        return doc.Root ?? throw new InvalidOperationException($"'{path}' has no root element.");
     }
 
-    public static AntigenImmunityData LoadImmunityData(string path)
+    internal static AntigenImmunityData ParseImmunityData(XElement root)
     {
-        var doc = XDocument.Load(path);
-        var root = doc.Root ?? throw new InvalidOperationException($"'{path}' has no root element.");
         var immunityEl = root.Element("immunity");
 
         if (immunityEl is null)
@@ -39,10 +47,8 @@ public static class AntigenSupportingDataLoader
         return new AntigenImmunityData { ClinicalHistoryGuidelines = guidelines, BirthDateRules = birthDateRules };
     }
 
-    public static AntigenContraindicationData LoadContraindicationData(string path)
+    internal static AntigenContraindicationData ParseContraindicationData(XElement root)
     {
-        var doc = XDocument.Load(path);
-        var root = doc.Root ?? throw new InvalidOperationException($"'{path}' has no root element.");
         var ciEl = root.Element("contraindications");
 
         if (ciEl is null)
@@ -102,18 +108,14 @@ public static class AntigenSupportingDataLoader
         };
     }
 
-    private static IReadOnlyList<AntigenSeries> ParseSeriesList(XElement root, string sourcePath)
+    internal static IReadOnlyList<AntigenSeries> ParseSeriesList(XElement root, string sourcePath)
     {
         var seriesElements = root.Element("series") is not null
             ? root.Elements("series")
             : Enumerable.Empty<XElement>();
 
-        var result = new List<AntigenSeries>();
-        foreach (var seriesEl in seriesElements)
-        {
-            result.Add(ParseSeries(seriesEl, sourcePath));
-        }
-        return result;
+        // ToList keeps the public LoadFile's returned runtime type identical to before.
+        return seriesElements.Select(seriesEl => ParseSeries(seriesEl, sourcePath)).ToList();
     }
 
     private static AntigenSeries ParseSeries(XElement seriesEl, string sourcePath)

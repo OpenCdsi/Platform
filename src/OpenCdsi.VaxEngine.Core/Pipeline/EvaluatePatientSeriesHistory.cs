@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+using System.Collections.Immutable;
 using OpenCdsi.VaxEngine.Core.Evaluation;
 using OpenCdsi.VaxEngine.Core.Models;
 using OpenCdsi.VaxEngine.Core.ReferenceData;
@@ -56,41 +57,72 @@ public static class EvaluatePatientSeriesHistory
     {
         var antigenRecords = OrganizeImmunizationHistory.Execute(patient, allDosesAdministered, cvxToAntigen);
 
-        var results = new Dictionary<AntigenSeries, SeriesHistoryResult>();
-        var patientWideHistory = new List<EvaluatedAntigenDose>();
-
         // Sorted for determinism, not because order is spec-mandated - the spec doesn't say
-        // what order relevant series should be evaluated in.
+        // what order relevant series should be evaluated in. The order is nonetheless
+        // observable: each series only sees cross-antigen history from series folded before it,
+        // and callers (GeneratePatientForecast) take the first result per antigen by enumeration
+        // order. Hence an explicit left fold rather than an order-free map.
         var orderedSeries = relevantSeries
             .OrderBy(s => s.Antigen, StringComparer.Ordinal)
             .ThenBy(s => s.SeriesName, StringComparer.Ordinal);
 
-        foreach (var series in orderedSeries)
+        var final = orderedSeries.Aggregate(
+            PatientEvaluationState.Empty,
+            (state, series) => Step(state, series, patient, antigenRecords, conflictsByImpactedCvx, resolveCompletedSeries, assessmentDate));
+
+        // Materialized with indexer assignment, in fold order, so a series instance appearing
+        // twice keeps its first position but its last result - exactly as the prior imperative
+        // loop behaved.
+        var results = new Dictionary<AntigenSeries, SeriesHistoryResult>();
+        foreach (var (series, result) in final.Results)
         {
-            var thisAntigenRecords = antigenRecords
-                .Where(r => r.Antigen == series.Antigen)
-                .OrderBy(r => r.DateAdministered)
-                .ToArray();
-
-            var otherAntigensHistory = patientWideHistory
-                .Where(d => d.Antigen != series.Antigen)
-                .ToArray();
-
-            var seriesResult = EvaluateSeriesHistory.Execute(
-                patient, series, thisAntigenRecords, otherAntigensHistory,
-                conflictsByImpactedCvx, groups => resolveCompletedSeries(series.Antigen, groups), assessmentDate);
-
-            results[series] = seriesResult;
-
-            // Only contribute this antigen's history once - if another relevant series for the
-            // SAME antigen runs later, don't let it overwrite/duplicate what's already there
-            // (see the SIMPLIFICATION note above).
-            if (!patientWideHistory.Any(d => d.Antigen == series.Antigen))
-            {
-                patientWideHistory.AddRange(seriesResult.AllEvaluatedDoses);
-            }
+            results[series] = result;
         }
 
         return results;
+    }
+
+    private sealed record PatientEvaluationState(
+        ImmutableList<KeyValuePair<AntigenSeries, SeriesHistoryResult>> Results,
+        ImmutableList<EvaluatedAntigenDose> PatientWideHistory)
+    {
+        public static readonly PatientEvaluationState Empty = new([], []);
+    }
+
+    private static PatientEvaluationState Step(
+        PatientEvaluationState state,
+        AntigenSeries series,
+        Patient patient,
+        IReadOnlyList<AntigenAdministered> antigenRecords,
+        IReadOnlyDictionary<string, IReadOnlyList<VaccineConflictRule>> conflictsByImpactedCvx,
+        Func<string, string?, bool> resolveCompletedSeries,
+        DateOnly? assessmentDate)
+    {
+        var thisAntigenRecords = antigenRecords
+            .Where(r => r.Antigen == series.Antigen)
+            .OrderBy(r => r.DateAdministered)
+            .ToArray();
+
+        var otherAntigensHistory = state.PatientWideHistory
+            .Where(d => d.Antigen != series.Antigen)
+            .ToArray();
+
+        var seriesResult = EvaluateSeriesHistory.Execute(
+            patient, series, thisAntigenRecords, otherAntigensHistory,
+            conflictsByImpactedCvx, groups => resolveCompletedSeries(series.Antigen, groups), assessmentDate);
+
+        // Only contribute this antigen's history once (see the SIMPLIFICATION note above).
+        // Deliberately keyed on "no doses for this antigen yet", not "first series for this
+        // antigen": if the first same-antigen series yields no evaluated doses, a later one
+        // still contributes. Preserved as-is; this refactor must not change behavior.
+        var antigenAlreadyContributed = state.PatientWideHistory.Any(d => d.Antigen == series.Antigen);
+
+        return state with
+        {
+            Results = state.Results.Add(new(series, seriesResult)),
+            PatientWideHistory = antigenAlreadyContributed
+                ? state.PatientWideHistory
+                : state.PatientWideHistory.AddRange(seriesResult.AllEvaluatedDoses),
+        };
     }
 }

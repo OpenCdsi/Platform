@@ -17,37 +17,43 @@ public sealed class ReferenceDataRepository
 
     public static ReferenceDataRepository Load(string antigensDirectory, string scheduleFilePath)
     {
-        var allSeries = new List<AntigenSeries>();
-        var immunityByAntigen = new Dictionary<string, AntigenImmunityData>();
-        var contraindicationsByAntigen = new Dictionary<string, AntigenContraindicationData>();
-
-        foreach (var file in Directory.EnumerateFiles(antigensDirectory, "AntigenSupportingData-*.xml").OrderBy(f => f, StringComparer.Ordinal))
-        {
-            var series = AntigenSupportingDataLoader.LoadFile(file);
-            allSeries.AddRange(series);
-
-            var immunity = AntigenSupportingDataLoader.LoadImmunityData(file);
-            var contraindications = AntigenSupportingDataLoader.LoadContraindicationData(file);
-
-            // Every real file defines exactly one antigen in practice, but key by whatever
-            // distinct antigen names actually appear rather than assuming it, in case that
-            // ever isn't true for some future data drop.
-            foreach (var antigenName in series.Select(s => s.Antigen).Distinct())
+        // Edge: read every antigen file once, in ordinal filename order, and parse it
+        // immediately (series, then immunity, then contraindications, as before) so a bad file
+        // fails at the same point it always did.
+        var files = Directory
+            .EnumerateFiles(antigensDirectory, "AntigenSupportingData-*.xml")
+            .OrderBy(f => f, StringComparer.Ordinal)
+            .Select(file =>
             {
-                immunityByAntigen[antigenName] = immunity;
-                contraindicationsByAntigen[antigenName] = contraindications;
-            }
-        }
+                var root = AntigenSupportingDataLoader.LoadRoot(file);
+                return (
+                    Series: AntigenSupportingDataLoader.ParseSeriesList(root, file),
+                    Immunity: AntigenSupportingDataLoader.ParseImmunityData(root),
+                    Contraindications: AntigenSupportingDataLoader.ParseContraindicationData(root));
+            })
+            .ToArray();
+
+        // Every real file defines exactly one antigen in practice, but key by whatever distinct
+        // antigen names actually appear rather than assuming it, in case that ever isn't true for
+        // some future data drop.
+        var perAntigen = files
+            .SelectMany(f => f.Series.Select(s => s.Antigen).Distinct()
+                .Select(antigen => (Antigen: antigen, f.Immunity, f.Contraindications)))
+            .GroupBy(x => x.Antigen)
+            .ToArray();
 
         var schedule = ScheduleSupportingDataLoader.LoadFile(scheduleFilePath);
         var vaccineGroups = ScheduleSupportingDataLoader.LoadVaccineGroups(scheduleFilePath);
 
         return new ReferenceDataRepository
         {
-            AllSeries = allSeries,
+            // ToList/ToDictionary keep the runtime types identical to before the refactor.
+            AllSeries = files.SelectMany(f => f.Series).ToList(),
             Schedule = schedule,
-            ImmunityByAntigen = immunityByAntigen,
-            ContraindicationsByAntigen = contraindicationsByAntigen,
+            // Last() matches the old indexer's last-write-wins if an antigen spans several files;
+            // GroupBy keeps its first-appearance position, as the indexer did.
+            ImmunityByAntigen = perAntigen.ToDictionary(g => g.Key, g => g.Last().Immunity),
+            ContraindicationsByAntigen = perAntigen.ToDictionary(g => g.Key, g => g.Last().Contraindications),
             VaccineGroups = vaccineGroups
         };
     }

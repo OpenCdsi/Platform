@@ -29,42 +29,44 @@ public static class DetermineBestPatientSeriesForAntigen
         DateOnly dateOfBirth,
         DateOnly assessmentDate)
     {
-        var byGroup = allMembersForAntigen.GroupBy(m => m.Series.SeriesGroupInfo.SeriesGroup).ToArray();
-
         // Compute §8.1-§8.7's prioritized series (and its own forecast) for every group first -
         // §8.8 needs every group's result available before it can cross-reference any of them.
-        var prioritizedByGroup = new Dictionary<string, SeriesGroupMember?>();
-        foreach (var group in byGroup)
-        {
-            var groupMembers = group.ToArray();
-            var prioritizedSeries = SelectPrioritizedPatientSeriesForGroup.Execute(groupMembers, dateOfBirth, assessmentDate);
-            prioritizedByGroup[group.Key] = prioritizedSeries is not null
-                ? groupMembers.FirstOrDefault(m => m.Series == prioritizedSeries)
-                : null;
-        }
+        // Materialized in GroupBy's first-appearance order, which is also the order of the result.
+        var prioritized = allMembersForAntigen
+            .GroupBy(m => m.Series.SeriesGroupInfo.SeriesGroup)
+            .Select(group => (GroupId: group.Key, Member: PrioritizedMember(group.ToArray(), dateOfBirth, assessmentDate)))
+            .ToArray();
 
-        var best = new List<AntigenSeries>();
-        foreach (var member in prioritizedByGroup.Values)
-        {
-            if (member is null)
-            {
-                continue; // this group had no resolvable prioritized series at all - nothing to evaluate for "best"
-            }
+        var prioritizedByGroup = prioritized.ToDictionary(p => p.GroupId, p => p.Member);
 
-            var equivalentGroupId = member.Series.EquivalentSeriesGroup;
-            var equivalentMember = equivalentGroupId is not null && prioritizedByGroup.TryGetValue(equivalentGroupId, out var eq) ? eq : null;
+        // A group with no resolvable prioritized series has nothing to evaluate for "best".
+        // ToList keeps the returned runtime type identical to before the refactor.
+        return prioritized
+            .Select(p => p.Member)
+            .OfType<SeriesGroupMember>()
+            .Where(member => IsBest(member, prioritizedByGroup))
+            .Select(member => member.Series)
+            .ToList();
+    }
 
-            var isComplete = ClassifyScorablePatientSeries.IsCompletePatientSeries(member.Forecast.Status);
-            var equivalentGroupHasComplete = equivalentMember is not null && ClassifyScorablePatientSeries.IsCompletePatientSeries(equivalentMember.Forecast.Status);
-            var equivalentGroupHasRisk = equivalentMember is not null && equivalentMember.Series.SeriesType == SeriesType.Risk;
+    private static SeriesGroupMember? PrioritizedMember(SeriesGroupMember[] groupMembers, DateOnly dateOfBirth, DateOnly assessmentDate)
+    {
+        var prioritizedSeries = SelectPrioritizedPatientSeriesForGroup.Execute(groupMembers, dateOfBirth, assessmentDate);
+        return prioritizedSeries is not null
+            ? groupMembers.FirstOrDefault(m => m.Series == prioritizedSeries)
+            : null;
+    }
 
-            var isBest = DetermineBestPatientSeries.IsBestPatientSeries(isComplete, equivalentGroupHasComplete, member.Series.SeriesType, equivalentGroupHasRisk);
-            if (isBest)
-            {
-                best.Add(member.Series);
-            }
-        }
+    /// <summary>Table 8-14, cross-referencing this group's prioritized series against its equivalentSeriesGroups counterpart.</summary>
+    private static bool IsBest(SeriesGroupMember member, IReadOnlyDictionary<string, SeriesGroupMember?> prioritizedByGroup)
+    {
+        var equivalentGroupId = member.Series.EquivalentSeriesGroup;
+        var equivalentMember = equivalentGroupId is not null && prioritizedByGroup.TryGetValue(equivalentGroupId, out var eq) ? eq : null;
 
-        return best;
+        var isComplete = ClassifyScorablePatientSeries.IsCompletePatientSeries(member.Forecast.Status);
+        var equivalentGroupHasComplete = equivalentMember is not null && ClassifyScorablePatientSeries.IsCompletePatientSeries(equivalentMember.Forecast.Status);
+        var equivalentGroupHasRisk = equivalentMember is not null && equivalentMember.Series.SeriesType == SeriesType.Risk;
+
+        return DetermineBestPatientSeries.IsBestPatientSeries(isComplete, equivalentGroupHasComplete, member.Series.SeriesType, equivalentGroupHasRisk);
     }
 }
