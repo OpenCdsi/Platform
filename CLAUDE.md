@@ -27,6 +27,10 @@ structural refactor only.
 - Never run a bare `dotnet build` (four .slnx files). Use `Engine.slnx` for the
   core and conformance tests, `Backend.slnx` for the API, `Platform.slnx` for everything.
 - `dotnet test Engine.slnx` includes the conformance corpus.
+- `scripts/check-baseline.sh` runs `Engine.slnx` and diffs every case against
+  `tests/baseline/engine-baseline.tsv` (known failures included). This is the
+  per-stage regression gate: commit only when it prints "Matches baseline".
+  Never use `--update` during the refactor unless explicitly told to.
 - Api.Tests needs `Platform.slnx` at the repo root to locate `data/`.
 
 ## Conventions
