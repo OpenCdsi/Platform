@@ -40,9 +40,13 @@ public static class ScoreNoValidDosesPatientSeries
         // column for this condition, so a tie is detected separately rather than inherited as a
         // gap. A series with no StartDate at all can't claim "earliest" - scores -1, same as any
         // other not-true case.
+        //
+        // "Others" excludes this candidate by reference, not value: candidates are records, so two
+        // distinct series with the same flags and start date compare equal, and a value exclusion
+        // would drop both from each other's "others" and score each twin +1 instead of tied->0.
         if (candidate.StartDate is DateOnly thisStart)
         {
-            var others = allCandidatesInGroup.Where(c => c != candidate && c.StartDate is not null).ToArray();
+            var others = allCandidatesInGroup.Where(c => !ReferenceEquals(c, candidate) && c.StartDate is not null).ToArray();
             var isUniqueEarliest = others.All(other => thisStart < other.StartDate!.Value);
             if (isUniqueEarliest)
             {
