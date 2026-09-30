@@ -16,10 +16,17 @@
   Demo, Mobile, or ClinicalReference.
 
 ## Target style
-- `record` types with `init` properties and `with` expressions; no in-place mutation.
+- No in-place mutation. Use `init` properties; use `record` and `with` for
+  new internal state (e.g. fold accumulators). Keep existing model and result
+  types (`AntigenSeries`, `SeriesHistoryResult`, etc.) as `sealed class`:
+  stages rely on their reference identity (`==`, dictionary keys), and record
+  value equality would change results.
 - Stage functions take inputs and return new results; no shared mutable fields.
 - Side effects (XML loading, files) only at the edges; the core sees plain data.
-- Return result types instead of throwing for expected outcomes.
+- Keep the existing exceptions (e.g. missing immunity/contraindication data,
+  malformed reference XML); Api and Demo depend on them. New code may return
+  result types for expected outcomes, but don't convert existing throws
+  without asking.
 - Keep nullable dates where "empty" is meaningful (Table 7-12). Don't
   substitute sentinel dates there.
 
