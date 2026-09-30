@@ -26,37 +26,34 @@ public static class OrganizeImmunizationHistory
         IReadOnlyList<VaccineDoseAdministered> dosesAdministered,
         IReadOnlyDictionary<string, CvxMapEntry> cvxToAntigen)
     {
-        var records = new List<AntigenAdministered>();
-
-        foreach (var dose in dosesAdministered)
-        {
-            if (!cvxToAntigen.TryGetValue(dose.Cvx, out var mapEntry))
-            {
-                // An unmapped CVX is a data-quality problem worth surfacing, not silently dropping.
-                // In a production system this should go to a review queue rather than throw —
-                // left as an explicit extension point rather than guessed at here.
-                continue;
-            }
-
-            foreach (var association in mapEntry.Associations)
-            {
-                if (association.AppliesAt(patient.DateOfBirth, dose.DateAdministered))
-                {
-                    records.Add(new AntigenAdministered
-                    {
-                        Antigen = association.Antigen,
-                        DateAdministered = dose.DateAdministered,
-                        Cvx = dose.Cvx,
-                        SourceDose = dose
-                    });
-                }
-            }
-        }
-
         // Step 3 of §4.2: sort by antigen, then ascending date administered within antigen.
-        return records
+        // OrderBy is stable, so ties keep the dose-then-association order SelectMany produces.
+        return dosesAdministered
+            .SelectMany(dose => ExplodeDose(patient, dose, cvxToAntigen))
             .OrderBy(r => r.Antigen, StringComparer.Ordinal)
             .ThenBy(r => r.DateAdministered)
             .ToArray();
+    }
+
+    private static IEnumerable<AntigenAdministered> ExplodeDose(
+        Patient patient, VaccineDoseAdministered dose, IReadOnlyDictionary<string, CvxMapEntry> cvxToAntigen)
+    {
+        if (!cvxToAntigen.TryGetValue(dose.Cvx, out var mapEntry))
+        {
+            // An unmapped CVX is a data-quality problem worth surfacing, not silently dropping.
+            // In a production system this should go to a review queue rather than throw —
+            // left as an explicit extension point rather than guessed at here.
+            return [];
+        }
+
+        return mapEntry.Associations
+            .Where(association => association.AppliesAt(patient.DateOfBirth, dose.DateAdministered))
+            .Select(association => new AntigenAdministered
+            {
+                Antigen = association.Antigen,
+                DateAdministered = dose.DateAdministered,
+                Cvx = dose.Cvx,
+                SourceDose = dose
+            });
     }
 }
