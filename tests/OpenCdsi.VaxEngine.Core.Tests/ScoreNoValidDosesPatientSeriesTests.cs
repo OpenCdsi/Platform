@@ -65,6 +65,23 @@ public class ScoreNoValidDosesPatientSeriesTests
     }
 
     [Fact]
+    public void ValueIdenticalTwins_TiedForEarliest_EachScoreZeroOnCondition1()
+    {
+        // The equality-only tie test above passes even if both twins wrongly score +1. Candidates
+        // are records, so two distinct series with identical flags and start date are value-equal;
+        // excluding "self" by value would drop BOTH twins from "others" and make each look like the
+        // unique earliest. Pin the absolute score: 0 (tied) + 1 (completable) + 1 (not product).
+        var twinA = Make(startDate: new DateOnly(2024, 1, 1));
+        var twinB = Make(startDate: new DateOnly(2024, 1, 1));
+        var later = Make(startDate: new DateOnly(2025, 1, 1));
+        var group = new[] { twinA, twinB, later };
+
+        Assert.Equal(2, ScoreNoValidDosesPatientSeries.Execute(twinA, group));
+        Assert.Equal(2, ScoreNoValidDosesPatientSeries.Execute(twinB, group));
+        Assert.Equal(1, ScoreNoValidDosesPatientSeries.Execute(later, group));
+    }
+
+    [Fact]
     public void NoStartDateAtAll_TreatedAsNotEarliest()
     {
         var withDate = Make(startDate: new DateOnly(2024, 1, 1));

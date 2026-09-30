@@ -39,9 +39,8 @@ public static class ScoreInProcessPatientSeries
         + ClosestToCompletion(candidate, allCandidatesInGroup)
         + CanFinishEarliest(candidate, allCandidatesInGroup);
 
-    // "Other" candidates below are excluded with record VALUE equality (c != candidate), not
-    // reference identity - a value-identical twin is excluded too. Preserved as-is from the
-    // original scoring; changing it would change scores for value-identical candidates.
+    // "Other" candidates below are excluded by reference, not record value equality, so a
+    // value-identical twin still counts as an other (matches ScoreNoValidDosesPatientSeries).
 
     private static bool IsCompletable(InProcessSeriesCandidate c) => c.ForecastFinishDate < c.LastTargetDoseMaxAgeDate;
 
@@ -78,7 +77,7 @@ public static class ScoreInProcessPatientSeries
     private static int ClosestToCompletion(InProcessSeriesCandidate candidate, IReadOnlyList<InProcessSeriesCandidate> allCandidatesInGroup)
     {
         var isClosestToCompletion = allCandidatesInGroup
-            .Where(c => c != candidate)
+            .Where(c => !ReferenceEquals(c, candidate))
             .All(other => candidate.NotSatisfiedTargetDoseCount < other.NotSatisfiedTargetDoseCount);
         if (isClosestToCompletion)
         {
@@ -96,7 +95,7 @@ public static class ScoreInProcessPatientSeries
     {
         var completableCandidates = allCandidatesInGroup.Where(IsCompletable).ToArray();
         var canFinishEarliest = IsCompletable(candidate) && completableCandidates
-            .Where(c => c != candidate)
+            .Where(c => !ReferenceEquals(c, candidate))
             .All(other => candidate.ForecastFinishDate <= other.ForecastFinishDate);
         if (!canFinishEarliest)
         {
