@@ -27,40 +27,27 @@ public static class GenerateForecastGuidance
         IReadOnlyList<AntigenContraindication> antigenContraindications,
         IReadOnlyList<VaccineContraindication> vaccineContraindications)
     {
-        var guidance = new List<string>();
+        bool HasActiveObservation(string? code) => patient.ActiveObservations.Any(o => o.Code == code);
 
         // Regimen guidance for the series being forecast - always included.
-        guidance.AddRange(series.SeriesAdminGuidance);
+        var regimen = series.SeriesAdminGuidance;
 
-        // Indication guidance, only where the patient has a matching active observation.
-        foreach (var indication in series.Indications)
-        {
-            if (indication.Guidance is string indicationGuidance &&
-                indication.ObservationCode is string indicationCode &&
-                patient.ActiveObservations.Any(o => o.Code == indicationCode))
-            {
-                guidance.Add(indicationGuidance);
-            }
-        }
+        // Indication guidance, only where the patient has a matching active observation. A null
+        // observation code never matches (checked explicitly, as the original did).
+        var indications = series.Indications
+            .Where(i => i.Guidance is not null && i.ObservationCode is not null && HasActiveObservation(i.ObservationCode))
+            .Select(i => i.Guidance!);
 
         // Contraindication guidance, only where the patient has a matching active observation.
-        foreach (var contraindication in antigenContraindications)
-        {
-            if (contraindication.ContraindicationGuidance is string text &&
-                patient.ActiveObservations.Any(o => o.Code == contraindication.ObservationCode))
-            {
-                guidance.Add(text);
-            }
-        }
-        foreach (var contraindication in vaccineContraindications)
-        {
-            if (contraindication.ContraindicationGuidance is string text &&
-                patient.ActiveObservations.Any(o => o.Code == contraindication.ObservationCode))
-            {
-                guidance.Add(text);
-            }
-        }
+        var antigenLevel = antigenContraindications
+            .Where(c => c.ContraindicationGuidance is not null && HasActiveObservation(c.ObservationCode))
+            .Select(c => c.ContraindicationGuidance!);
+        var vaccineLevel = vaccineContraindications
+            .Where(c => c.ContraindicationGuidance is not null && HasActiveObservation(c.ObservationCode))
+            .Select(c => c.ContraindicationGuidance!);
 
-        return guidance;
+        // Order and duplicates are part of the output: callers get this exact sequence. ToList
+        // (not ToArray) keeps the returned runtime type identical to before the refactor.
+        return regimen.Concat(indications).Concat(antigenLevel).Concat(vaccineLevel).ToList();
     }
 }
