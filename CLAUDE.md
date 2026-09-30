@@ -24,7 +24,8 @@
 - Stage functions take inputs and return new results; no shared mutable fields.
 - Side effects (XML loading, files) only at the edges; the core sees plain data.
 - Keep the existing exceptions (e.g. missing immunity/contraindication data,
-  malformed reference XML); Api and Demo depend on them. New code may return
+  malformed reference XML); they surface to Api and Demo, so replacing them
+  changes public behavior. New code may return
   result types for expected outcomes, but don't convert existing throws
   without asking.
 - Keep nullable dates where "empty" is meaningful (Table 7-12). Don't
